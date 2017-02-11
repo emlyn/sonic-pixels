@@ -2,7 +2,9 @@ from asyncio import get_event_loop
 import colour
 try:
     from neopixel import Adafruit_NeoPixel, Color, ws
+    print("Using real LEDs")
 except ImportError:
+    print("Using fake LEDs")
     def Color(red, green, blue, white = 0):
         return (white << 24) | (red << 16)| (green << 8) | blue
 
@@ -93,7 +95,7 @@ class LEDController:
     def _loop(self, loop, time = None):
         if time is None:
             time = loop.time()
-        print('Loop: %s' % time)
+        #print('Loop: %s' % time)
         self._display()
         delay = time + self.period - loop.time()
         loop.call_later(max(delay, 0), self._loop, loop, time + self.period)
