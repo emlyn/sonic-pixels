@@ -19,6 +19,8 @@ if __name__ == "__main__":
     parser.add_argument("--strip", default='grb',
                         choices=['rgb', 'rbg', 'grb', 'gbr',
                                  'brg', 'bgr', 'rgbw'])
+    parser.add_argument("--kind", default="auto",
+                        choices=["auto", "fake", "real"])
     parser.add_argument("--count", type=int, default=60,
                         help="Number of LEDs in the strip")
     parser.add_argument("--dma", type=int, default=5)
@@ -32,7 +34,7 @@ if __name__ == "__main__":
     print("Args:", args)
 
     loop = asyncio.get_event_loop()
-    leds = LEDController(args.count, args.freq, args.gpio, args.dma,
+    leds = LEDController(args.kind, args.count, args.freq, args.gpio, args.dma,
                          args.channel, args.strip, args.invert, args.bright)
 
     def cleanup():
@@ -43,7 +45,7 @@ if __name__ == "__main__":
             leds._display()
     loop.add_signal_handler(signal.SIGINT, cleanup)
     loop.add_signal_handler(signal.SIGTERM, cleanup)
-    print('Press Ctrl-C to exit')
+    print('Press Ctrl-C to quit')
 
     def debug(*args):
         print("Got %d args: %s" % (len(args), str(args)))

@@ -1,45 +1,12 @@
 from asyncio import get_event_loop
 import colour
+from fakepixel import Fake_NeoPixel
 try:
     from neopixel import Adafruit_NeoPixel, Color, ws
-    print("Using real LEDs")
+    realpixels = True
 except ImportError:
-    print("Using fake LEDs")
-    def Color(red, green, blue, white = 0):
-        return (white << 24) | (red << 16)| (green << 8) | blue
-
-    class ws:
-        WS2811_STRIP_RGB = 1
-        WS2811_STRIP_RBG = 2
-        WS2811_STRIP_GRB = 3
-        WS2811_STRIP_GBR = 4
-        WS2811_STRIP_BRG = 5
-        WS2811_STRIP_BGR = 6
-        SK6812_STRIP_RGBW = 10
-
-    class Adafruit_NeoPixel:
-        def __init__(self, leds, *args):
-            self.leds = leds
-
-        def numPixels(self):
-            return self.leds
-
-        def begin(self):
-            pass
-
-        def setBrightness(self, b):
-            pass
-
-        def setPixelColor(self, *args):
-            print('set', args)
-            pass
-
-        def setPixelColorRGB(self, *args):
-            print('set', args)
-            pass
-
-        def show(self):
-            pass
+    from fakepixel import Color, ws
+    realpixels = False
 
 
 def col(c):
@@ -56,11 +23,17 @@ class LEDController:
               'bgr': ws.WS2811_STRIP_BGR,
               'rgbw': ws.SK6812_STRIP_RGBW}
 
-    def __init__(self, leds, freq, pin, dma, channel, strip, invert, bright, period=0.5):
+    def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert, bright, period=0.5):
         # bg: solid, gradient, fade
         # fg: drop, flash, sparkle
         strip_type = self.STRIPS[strip]
-        self.leds = Adafruit_NeoPixel(leds, pin, freq, dma, invert,
+        if kind == "real" or (kind == "auto" and realpixels):
+            if not realpixels:
+                raise Exception("Can't load library for real pixels")
+            self.leds = Adafruit_NeoPixel(leds, pin, freq, dma, invert,
+                                          bright, channel, strip_type)
+        else:
+            self.leds = Fake_NeoPixel(leds, pin, freq, dma, invert,
                                       bright, channel, strip_type)
         # Intialize the library (must be called once before other functions).
         self.leds.begin()
