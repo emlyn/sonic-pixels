@@ -45,7 +45,7 @@ class LEDController:
 
     def brightness(self, bright):
         self.leds.setBrightness(bright)
-        #self.leds.show()
+        self._display()
 
     def clear(self):
         self.solid('#000')
@@ -54,13 +54,13 @@ class LEDController:
         n = self.leds.numPixels()
         c = col(colour)
         self.leds.setPixelColor(slice(0, n), [c]*n)
-        #self.leds.show()
+        self._display()
 
     def gradient(self, colour1, colour2):
         n = self.leds.numPixels()
         pix = [col(c) for c in colour.Color(colour1).range_to(colour2, n)]
         self.leds.setPixelColor(slice(0, n), pix)
-        #self.leds.show()
+        self._display()
 
     def _display(self):
         self.leds.show()

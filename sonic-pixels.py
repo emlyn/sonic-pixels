@@ -52,7 +52,7 @@ if __name__ == "__main__":
     handlers = {'debug': debug,
                 'clear': lambda addr, *args: leds.clear(),
                 'bright': lambda addr, *args: leds.brightness(*args),
-                'bg': lambda addr, *args: leds.solid(*args)}
+                'bg': lambda addr, *args: leds.solid(*args) if len(args) == 1 else leds.gradient(*args)}
     server = OSCServer(handlers, args.port, args.ip)
 
     try:
