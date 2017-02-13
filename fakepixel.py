@@ -12,10 +12,12 @@ class ws:
 
 class Fake_NeoPixel:
     def __init__(self, leds, *args):
-        self.leds = leds
+        #self.ledstr = '●' # small
+        self.ledstr = '⬤ ' # big
+        self.leds = [0]*leds
 
     def numPixels(self):
-        return self.leds
+        return len(self.leds)
 
     def begin(self):
         pass
@@ -23,13 +25,18 @@ class Fake_NeoPixel:
     def setBrightness(self, b):
         pass
 
-    def setPixelColor(self, *args):
-        print('set', args)
-        pass
+    def setPixelColor(self, i, c):
+        self.leds[i] = c
 
-    def setPixelColorRGB(self, *args):
-        print('set', args)
-        pass
+    def setPixelColorRGB(self, i, r, g, b):
+        self.leds[i] = Color(r, g, b)
 
     def show(self):
-        pass
+        print('\x0d',
+              ''.join('\x1b[38;2;{r};{g};{b}m{s}'.format(r=(c >> 16) % 256,
+                                                         g=(c >> 8) % 256,
+                                                         b=c % 256,
+                                                         s=self.ledstr)
+                      for c in self.leds),
+              '\x1b[39;49m',
+              sep='', end='')

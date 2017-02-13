@@ -27,7 +27,7 @@ class LEDController:
         # bg: solid, gradient, fade
         # fg: drop, flash, sparkle
         strip_type = self.STRIPS[strip]
-        if kind == "real" or (kind == "auto" and realpixels):
+        if kind == 'real' or (kind == 'auto' and realpixels):
             if not realpixels:
                 raise Exception("Can't load library for real pixels")
             self.leds = Adafruit_NeoPixel(leds, pin, freq, dma, invert,
@@ -68,7 +68,6 @@ class LEDController:
     def _loop(self, loop, time = None):
         if time is None:
             time = loop.time()
-        #print('Loop: %s' % time)
         self._display()
         delay = time + self.period - loop.time()
         loop.call_later(max(delay, 0), self._loop, loop, time + self.period)
