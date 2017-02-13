@@ -38,21 +38,30 @@ if __name__ == "__main__":
                          args.channel, args.strip, args.invert, args.bright)
 
     def cleanup():
-        print("\nQuitting...")
         loop.stop()
         if args.clear:
             leds.clear()
             leds._display()
+        print("\nQuitting...")
     loop.add_signal_handler(signal.SIGINT, cleanup)
     loop.add_signal_handler(signal.SIGTERM, cleanup)
     print('Press Ctrl-C to quit')
 
     def debug(*args):
         print("Got %d args: %s" % (len(args), str(args)))
+
+    def bg(_, *args):
+        if len(args) == 1:
+            leds.solid(args[0])
+        elif len(args) == 2:
+            leds.gradient(args[0], args[1])
+        else:
+            print("bg takes one or two colours")
+
     handlers = {'debug': debug,
                 'clear': lambda addr, *args: leds.clear(),
                 'bright': lambda addr, *args: leds.brightness(*args),
-                'bg': lambda addr, *args: leds.solid(*args) if len(args) == 1 else leds.gradient(*args)}
+                'bg': bg}
     server = OSCServer(handlers, args.port, args.ip)
 
     try:

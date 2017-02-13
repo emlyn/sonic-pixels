@@ -23,7 +23,8 @@ class LEDController:
               'bgr': ws.WS2811_STRIP_BGR,
               'rgbw': ws.SK6812_STRIP_RGBW}
 
-    def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert, bright, period=0.5):
+    def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert,
+                 bright, period=0.5):
         # bg: solid, gradient, fade
         # fg: drop, flash, sparkle
         strip_type = self.STRIPS[strip]
@@ -37,7 +38,6 @@ class LEDController:
                                       bright, channel, strip_type)
         # Intialize the library (must be called once before other functions).
         self.leds.begin()
-        #self.running = False
         self.period = period
 
         loop = get_event_loop()
@@ -65,7 +65,7 @@ class LEDController:
     def _display(self):
         self.leds.show()
 
-    def _loop(self, loop, time = None):
+    def _loop(self, loop, time=None):
         if time is None:
             time = loop.time()
         self._display()

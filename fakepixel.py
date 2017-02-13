@@ -1,5 +1,6 @@
-def Color(red, green, blue, white = 0):
-    return (white << 24) | (red << 16)| (green << 8) | blue
+def Color(red, green, blue, white=0):
+    return (white << 24) | (red << 16) | (green << 8) | blue
+
 
 class ws:
     WS2811_STRIP_RGB = 1
@@ -10,33 +11,59 @@ class ws:
     WS2811_STRIP_BGR = 6
     SK6812_STRIP_RGBW = 10
 
-class Fake_NeoPixel:
-    def __init__(self, leds, *args):
-        #self.ledstr = '●' # small
-        self.ledstr = '⬤ ' # big
-        self.leds = [0]*leds
 
-    def numPixels(self):
-        return len(self.leds)
+class Fake_NeoPixel:
+    def __init__(self, num, pin, freq_hz=800000, dma=5, invert=False,
+                 brightness=255, *args):
+        # self._ledstr = '●'  # small
+        self._ledstr = '⬤ '  # big
+        self._led_data = [0]*num
+        self._brightness = brightness
+
+    def __del__(self):
+        self._cleanup()
+
+    def _cleanup(self):
+        # Ensure default colour, and show cursor again
+        print('\x1b[39;49m\x1b[?25h')
 
     def begin(self):
         pass
 
-    def setBrightness(self, b):
-        pass
+    def show(self):
+        b = self._brightness / 255.0
+
+        def col(bits, shift):
+            w = ((bits >> 24) & 0xff)
+            c = ((bits >> shift) & 0xff)
+            return min(255, round((c + w) * b))
+
+        print('\x1b[?25l',  # Hide cursor
+              '\x0d',       # Go back to start of line
+              '\x1b[48;2;64;64;64m',  # Set grey background
+              ''.join('\x1b[38;2;{r};{g};{b}m{s}'.format(r=col(c, 16),
+                                                         g=col(c, 8),
+                                                         b=col(c, 0),
+                                                         s=self._ledstr)
+                      for c in self._led_data),  # Coloured pixels
+              '\x1b[39;49m',  # Reset colour to default
+              '  ',           # Overwrite any following chars if present
+              sep='', end='')
 
     def setPixelColor(self, i, c):
-        self.leds[i] = c
+        self._led_data[i] = c
 
-    def setPixelColorRGB(self, i, r, g, b):
-        self.leds[i] = Color(r, g, b)
+    def setPixelColorRGB(self, i, r, g, b, w=0):
+        self._led_data[i] = Color(r, g, b, w)
 
-    def show(self):
-        print('\x0d',
-              ''.join('\x1b[38;2;{r};{g};{b}m{s}'.format(r=(c >> 16) % 256,
-                                                         g=(c >> 8) % 256,
-                                                         b=c % 256,
-                                                         s=self.ledstr)
-                      for c in self.leds),
-              '\x1b[39;49m',
-              sep='', end='')
+    def setBrightness(self, b):
+        self._brightness = b
+
+    def getPixels(self):
+        return self._led_data
+
+    def numPixels(self):
+        return len(self._led_data)
+
+    def getPixelColor(self, n):
+        return self._led_data[n]
