@@ -22,8 +22,10 @@ if __name__ == "__main__":
                                  'brg', 'bgr', 'rgbw'])
     parser.add_argument("--kind", default="auto",
                         choices=["auto", "fake", "real"])
-    parser.add_argument("--count", type=int, default=60,
-                        help="Number of LEDs in the strip")
+    parser.add_argument("--width", type=int, default=60,
+                        help="Width of LED array")
+    parser.add_argument("--height", type=int, default=1,
+                        help="Height of LED array")
     parser.add_argument("--dma", type=int, default=5)
     parser.add_argument("--gpio", type=int, default=18,
                         choices=[12, 18, 40, 52])
@@ -35,35 +37,20 @@ if __name__ == "__main__":
     print("Args:", args)
 
     loop = asyncio.get_event_loop()
-    leds = LEDStrip(args.kind, args.count, args.freq, args.gpio, args.dma,
-                    args.channel, args.strip, args.invert, args.bright)
-    controller = Controller(args.count, 1, leds)
+    leds = LEDStrip(args.kind, args.width * args.height, args.freq, args.gpio,
+                    args.dma, args.channel, args.strip, args.invert,
+                    args.bright)
+    controller = Controller(args.width, args.height, leds)
 
     def cleanup():
         loop.stop()
         if args.clear:
             leds.clear()
-            leds._display()
         print("\nQuitting...")
     loop.add_signal_handler(signal.SIGINT, cleanup)
     loop.add_signal_handler(signal.SIGTERM, cleanup)
     print('Press Ctrl-C to quit')
 
-    def debug(*args):
-        print("Got %d args: %s" % (len(args), str(args)))
-
-    def bg(_, *args):
-        if len(args) == 1:
-            leds.solid(args[0])
-        elif len(args) == 2:
-            leds.gradient(args[0], args[1])
-        else:
-            print("bg takes one or two colours")
-
-    #handlers = {'debug': debug,
-    #            'clear': lambda addr, *args: leds.clear(),
-    #            'bright': lambda addr, *args: leds.brightness(*args),
-    #            'bg': bg}
     server = OSCServer(controller.handler, args.port, args.ip)
 
     try:

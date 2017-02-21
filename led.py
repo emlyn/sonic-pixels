@@ -40,7 +40,6 @@ class LEDStrip:
         self.leds.begin()
         self.period = period
 
-
     def brightness(self, bright):
         self.leds.setBrightness(bright)
         self._display()
