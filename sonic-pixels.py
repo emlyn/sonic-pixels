@@ -16,7 +16,8 @@ if __name__ == "__main__":
                         help="The port to listen on")
     parser.add_argument("--no-clear", action="store_false", dest="clear",
                         help="Don't clear LEDs on exit")
-    parser.add_argument("--bright", type=int, default=255)
+    parser.add_argument("--bright", type=int, default=255,
+                        help="Initial brightness of LED strip (0-255)")
     parser.add_argument("--strip", default='grb',
                         choices=['rgb', 'rbg', 'grb', 'gbr',
                                  'brg', 'bgr', 'rgbw'])
@@ -26,6 +27,9 @@ if __name__ == "__main__":
                         help="Width of LED array")
     parser.add_argument("--height", type=int, default=1,
                         help="Height of LED array")
+    parser.add_argument("--period", type=float, default=0.05,
+                        help="Refresh period in seconds")
+    parser.add_argument("--debug", action="store_true")
     parser.add_argument("--dma", type=int, default=5)
     parser.add_argument("--gpio", type=int, default=18,
                         choices=[12, 18, 40, 52])
@@ -39,12 +43,14 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     leds = LEDStrip(args.kind, args.width * args.height, args.freq, args.gpio,
                     args.dma, args.channel, args.strip, args.invert,
-                    args.bright)
-    controller = Controller(args.width, args.height, leds)
+                    args.bright, args.debug)
+    controller = Controller(args.width, args.height, args.period, leds, args.debug)
 
     def cleanup():
         loop.stop()
         if args.clear:
+            if args.debug:
+                print()
             leds.clear()
         print("\nQuitting...")
     loop.add_signal_handler(signal.SIGINT, cleanup)

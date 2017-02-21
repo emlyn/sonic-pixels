@@ -24,7 +24,7 @@ class LEDStrip:
               'rgbw': ws.SK6812_STRIP_RGBW}
 
     def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert,
-                 bright, period=0.5):
+                 bright, debug):
         # bg: solid, gradient, fade
         # fg: drop, flash, sparkle
         strip_type = self.STRIPS[strip]
@@ -35,10 +35,9 @@ class LEDStrip:
                                           bright, channel, strip_type)
         else:
             self.leds = Fake_NeoPixel(leds, pin, freq, dma, invert,
-                                      bright, channel, strip_type)
+                                      bright, channel, strip_type, debug)
         # Intialize the library (must be called once before other functions).
         self.leds.begin()
-        self.period = period
 
     def brightness(self, bright):
         self.leds.setBrightness(bright)

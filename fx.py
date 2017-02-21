@@ -10,8 +10,7 @@ class FXBase(object):
         self.start_time = start_time
 
     def getDisplay(self, time, previous):
-        raise NotImplementedError("FX implementations must"
-                                  "implement getDisplay")
+        raise NotImplementedError("FX implementations must implement getDisplay")
 
 
 class SolidFX(FXBase):
@@ -37,7 +36,7 @@ class FadeFX(FXBase):
         if self.start_t is None:
             self.start_t = time
             if previous is None:
-                self.start_img = Image.new('RGBA', size, (0, 0, 0, 0))
+                self.start_img = Image.new('RGBA', self.size, (0, 0, 0, 0))
             else:
                 self.start_img = previous
         # print("fade", time, previous, self.start_t, self.time)

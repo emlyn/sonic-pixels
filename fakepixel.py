@@ -17,18 +17,20 @@ class ws:
 
 class Fake_NeoPixel:
     def __init__(self, num, pin, freq_hz=800000, dma=5, invert=False,
-                 brightness=255, *args):
+                 brightness=255, channel=None, strip_type=None, debug=False):
+        self.dest = sys.stdout
         self._ledstr = '●'  # small
         # self._ledstr = '⬤ '  # big
         self._led_data = [0]*num
         self._brightness = brightness
+        self.debug = debug
 
     def __del__(self):
         self._cleanup()
 
     def _cleanup(self):
         # Ensure default colour, and show cursor again
-        print('\x1b[39;49m\x1b[?25h', file=sys.stderr, flush=True)
+        print('\x1b[39;49m\x1b[?25h', file=self.dest, flush=True)
 
     def begin(self):
         pass
@@ -42,7 +44,7 @@ class Fake_NeoPixel:
             return min(255, round((c + w) * b))
 
         print('\x1b[?25l',  # Hide cursor
-              '\x0d',       # Go back to start of line
+              '' if self.debug else '\x0d',  # Go back to start of line
               '\x1b[48;2;64;64;64m',  # Set grey background
               ' ',
               ''.join('\x1b[38;2;{r};{g};{b}m{s}'.format(r=col(c, 16),
@@ -53,7 +55,8 @@ class Fake_NeoPixel:
               ' ',
               '\x1b[39;49m',  # Reset colour to default
               '  ',           # Overwrite any following chars if present
-              sep='', end='', file=sys.stderr, flush=True)
+              '\n' if self.debug else '',
+              sep='', end='', file=self.dest, flush=True)
 
     def setPixelColor(self, i, c):
         self._led_data[i] = c
