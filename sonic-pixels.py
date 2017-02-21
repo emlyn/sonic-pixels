@@ -5,7 +5,8 @@ import asyncio
 import signal
 
 from osc import OSCServer
-from led import LEDController
+from led import LEDStrip
+from controller import Controller
 
 
 if __name__ == "__main__":
@@ -34,8 +35,9 @@ if __name__ == "__main__":
     print("Args:", args)
 
     loop = asyncio.get_event_loop()
-    leds = LEDController(args.kind, args.count, args.freq, args.gpio, args.dma,
-                         args.channel, args.strip, args.invert, args.bright)
+    leds = LEDStrip(args.kind, args.count, args.freq, args.gpio, args.dma,
+                    args.channel, args.strip, args.invert, args.bright)
+    controller = Controller(args.count, 1, leds)
 
     def cleanup():
         loop.stop()
@@ -58,11 +60,11 @@ if __name__ == "__main__":
         else:
             print("bg takes one or two colours")
 
-    handlers = {'debug': debug,
-                'clear': lambda addr, *args: leds.clear(),
-                'bright': lambda addr, *args: leds.brightness(*args),
-                'bg': bg}
-    server = OSCServer(handlers, args.port, args.ip)
+    #handlers = {'debug': debug,
+    #            'clear': lambda addr, *args: leds.clear(),
+    #            'bright': lambda addr, *args: leds.brightness(*args),
+    #            'bg': bg}
+    server = OSCServer(controller.handler, args.port, args.ip)
 
     try:
         loop.run_forever()

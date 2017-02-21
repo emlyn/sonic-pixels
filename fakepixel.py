@@ -1,3 +1,5 @@
+import sys
+
 def Color(red, green, blue, white=0):
     return (white << 24) | (red << 16) | (green << 8) | blue
 
@@ -15,8 +17,8 @@ class ws:
 class Fake_NeoPixel:
     def __init__(self, num, pin, freq_hz=800000, dma=5, invert=False,
                  brightness=255, *args):
-        # self._ledstr = '●'  # small
-        self._ledstr = '⬤ '  # big
+        self._ledstr = '●'  # small
+        # self._ledstr = '⬤ '  # big
         self._led_data = [0]*num
         self._brightness = brightness
 
@@ -25,7 +27,7 @@ class Fake_NeoPixel:
 
     def _cleanup(self):
         # Ensure default colour, and show cursor again
-        print('\x1b[39;49m\x1b[?25h')
+        print('\x1b[39;49m\x1b[?25h', file=sys.stderr)
 
     def begin(self):
         pass
@@ -48,7 +50,7 @@ class Fake_NeoPixel:
                       for c in self._led_data),  # Coloured pixels
               '\x1b[39;49m',  # Reset colour to default
               '  ',           # Overwrite any following chars if present
-              sep='', end='')
+              sep='', end='', file=sys.stderr)
 
     def setPixelColor(self, i, c):
         self._led_data[i] = c

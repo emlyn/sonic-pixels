@@ -1,5 +1,4 @@
-from asyncio import get_event_loop
-import colour
+import spectra
 from fakepixel import Fake_NeoPixel
 try:
     from neopixel import Adafruit_NeoPixel, Color, ws
@@ -10,11 +9,12 @@ except ImportError:
 
 
 def col(c):
-    col = colour.Color(c)
-    return Color(int(col.red * 255), int(col.green*255), int(col.blue*255))
+    if isinstance(c, tuple):
+        return Color(*c[:3])
+    return Color(*spectra.html(c).color_object.get_upscaled_value_tuple())
 
 
-class LEDController:
+class LEDStrip:
     STRIPS = {'rgb': ws.WS2811_STRIP_RGB,
               'rbg': ws.WS2811_STRIP_RBG,
               'grb': ws.WS2811_STRIP_GRB,
@@ -40,8 +40,6 @@ class LEDController:
         self.leds.begin()
         self.period = period
 
-        loop = get_event_loop()
-        loop.call_soon(self._loop, loop)
 
     def brightness(self, bright):
         self.leds.setBrightness(bright)
@@ -62,12 +60,12 @@ class LEDController:
         self.leds.setPixelColor(slice(0, n), pix)
         self._display()
 
+    def image(self, image):
+        data = image.getdata()
+        n = min(self.leds.numPixels(), len(data))
+        pix = [col(c) for c in data]
+        self.leds.setPixelColor(slice(0, n), pix)
+        self._display()
+
     def _display(self):
         self.leds.show()
-
-    def _loop(self, loop, time=None):
-        if time is None:
-            time = loop.time()
-        self._display()
-        delay = time + self.period - loop.time()
-        loop.call_later(max(delay, 0), self._loop, loop, time + self.period)
