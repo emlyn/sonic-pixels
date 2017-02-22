@@ -108,3 +108,20 @@ class ChaseFX(FXBase):
         x = round(a * (self.size[0] + self.width) - self.width)
         img.paste(self.sprite, (x, 0))
         return img
+
+
+class FlashFX(FXBase):
+    def __init__(self, size, time, *colours):
+        super().__init__(size)
+        self.start_t = None
+        self.time = time
+        self.img = gradient(size, colours)
+        self.trans = Image.new('RGBA', size, (0, 0, 0, 0))
+
+    def getDisplay(self, time, previous):
+        if self.start_t is None:
+            self.start_t = time
+        if time > self.start_t + self.time:
+            return None
+        a = (time - self.start_t) / self.time
+        return Image.blend(self.img, self.trans, a)

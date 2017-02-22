@@ -1,6 +1,6 @@
 from asyncio import get_event_loop
 from PIL import Image
-from fx import SolidFX, FadeFX, ChaseFX
+from fx import *
 
 
 class Controller:
@@ -28,6 +28,9 @@ class Controller:
         elif addr == '/chase':
             prev = self.layers[20][1] if 20 in self.layers else None
             self.layers[20] = [ChaseFX(self.size, *args), prev]
+        elif addr == '/flash':
+            prev = self.layers[30][1] if 30 in self.layers else None
+            self.layers[30] = [FlashFX(self.size, *args), prev]
         else:
             print("Unrecognised CMD:", addr, args)
         self.handle.cancel()
