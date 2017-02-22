@@ -101,10 +101,12 @@ class ChaseFX(FXBase):
     def getDisplay(self, time, previous):
         if self.start_t is None:
             self.start_t = time
-        if time > self.start_t + self.time:
+        if time > self.start_t + abs(self.time):
             return None
         img = Image.new('RGBA', self.size, (0, 0, 0, 0))
-        a = (time - self.start_t) / self.time
+        a = (time - self.start_t) / abs(self.time)
+        if self.time < 0:
+            a = 1 - a
         x = round(a * (self.size[0] + self.width) - self.width)
         img.paste(self.sprite, (x, 0))
         return img
