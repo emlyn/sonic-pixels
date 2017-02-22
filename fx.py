@@ -77,12 +77,25 @@ class FadeFX(FXBase):
 
 
 class ChaseFX(FXBase):
-    def __init__(self, size, time, width, fade, *colours):
+    def __init__(self, size, *args):
         self.start_t = None
         self.size = size
-        self.width = width
-        self.time = time
-        self.sprite = gradient((width, size[1]), colours if len(colours) > 0 else ['white'])
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.time = args[0]
+            args = args[1:]
+        else:
+            self.time = 1
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.width = args[0]
+            args = args[1:]
+        else:
+            self.width = 1
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.fade = args[0]
+            args = args[1:]
+        else:
+            self.fade = 1
+        self.sprite = gradient((self.width, size[1]), args if len(args) > 0 else ['white'])
         # TODO: fade edges (or better render in getDisplay with antialiasing)
 
     def getDisplay(self, time, previous):
