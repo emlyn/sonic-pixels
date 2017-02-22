@@ -1,4 +1,16 @@
+import spectra
 from PIL import Image
+
+
+def gradient(size, colours):
+    img = Image.new('RGBA', size)
+    pix = img.load()
+    scale = spectra.scale(colours)
+    for x in range(size[0]):
+        c = scale(x / (size[0] - 1.0))
+        for y in range(size[1]):
+            pix[x, y] = c.color_object.get_upscaled_value_tuple()
+    return img
 
 
 class FXBase(object):
@@ -14,10 +26,14 @@ class FXBase(object):
 
 
 class SolidFX(FXBase):
-    def __init__(self, size, colour):
+    def __init__(self, size, *colours):
         super().__init__(size)
-        self.colour = colour
-        self.img = Image.new('RGBA', size, colour)
+        if len(colours) == 0:
+            self.img = Image.new('RGBA', size, 'black')
+        elif len(colours) == 1:
+            self.img = Image.new('RGBA', size, colours[0])
+        else:
+            self.img = gradient(size, colours)
 
     def getDisplay(self, time, previous):
         return self.img
