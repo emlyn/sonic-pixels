@@ -40,7 +40,6 @@ class SolidFX(FXBase):
 
 class FadeFX(FXBase):
     def __init__(self, size, *vals):
-        # :red,
         super().__init__(size)
         self.start_t = None
         self.start_img = None
@@ -75,3 +74,24 @@ class FadeFX(FXBase):
         i = bisect_right(self.imgs, [time - self.start_t, None])
         a = (time - self.start_t - self.imgs[i-1][0]) / (self.imgs[i][0] - self.imgs[i-1][0])
         return Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
+
+
+class ChaseFX(FXBase):
+    def __init__(self, size, time, width, fade, *colours):
+        self.start_t = None
+        self.size = size
+        self.width = width
+        self.time = time
+        self.sprite = gradient((width, size[1]), colours if len(colours) > 0 else ['white'])
+        # TODO: fade edges (or better render in getDisplay with antialiasing)
+
+    def getDisplay(self, time, previous):
+        if self.start_t is None:
+            self.start_t = time
+        if time > self.start_t + self.time:
+            return None
+        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        a = (time - self.start_t) / self.time
+        x = round(a * (self.size[0] + self.width) - self.width)
+        img.paste(self.sprite, (x, 0))
+        return img

@@ -1,6 +1,6 @@
 from asyncio import get_event_loop
 from PIL import Image
-from fx import SolidFX, FadeFX
+from fx import SolidFX, FadeFX, ChaseFX
 
 
 class Controller:
@@ -25,6 +25,9 @@ class Controller:
         elif addr == '/fade':
             prev = self.layers[10][1] if 10 in self.layers else None
             self.layers[10] = [FadeFX(self.size, *args), prev]
+        elif addr == '/chase':
+            prev = self.layers[20][1] if 20 in self.layers else None
+            self.layers[20] = [ChaseFX(self.size, *args), prev]
         else:
             print("Unrecognised CMD:", addr, args)
         self.handle.cancel()
@@ -36,7 +39,8 @@ class Controller:
             layer, prev = self.layers[n]
             nextimg = layer.getDisplay(time, prev)
             self.layers[n][1] = nextimg
-            img = Image.alpha_composite(img, nextimg)
+            if nextimg is not None:
+                img = Image.alpha_composite(img, nextimg)
         if img != self.last:
             self.leds.image(img)
         self.last = img
