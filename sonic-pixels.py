@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import os
 import signal
 
 from osc import OSCServer
@@ -29,7 +30,8 @@ if __name__ == "__main__":
                         help="Height of LED array")
     parser.add_argument("--period", type=float, default=0.05,
                         help="Refresh period in seconds")
-    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--debug", action="store_true",
+                        help="Print some debugging output")
     parser.add_argument("--dma", type=int, default=5)
     parser.add_argument("--gpio", type=int, default=18,
                         choices=[12, 18, 40, 52])
@@ -38,14 +40,22 @@ if __name__ == "__main__":
     parser.add_argument("--invert", action="store_true")
 
     args = parser.parse_args()
-    print("Args:", args)
+    if args.debug:
+        print("Args:", args)
 
-    loop = asyncio.get_event_loop()
-    leds = LEDStrip(args.kind, args.width * args.height, args.freq, args.gpio,
-                    args.dma, args.channel, args.strip, args.invert,
-                    args.bright, args.debug)
+    try:
+        leds = LEDStrip(args.kind, args.width * args.height, args.freq, args.gpio,
+                        args.dma, args.channel, args.strip, args.invert,
+                        args.bright, args.debug)
+    except RuntimeError:
+        if os.geteuid() != 0:
+            print("Unable to initialise LED strip, you probably need to run with sudo")
+            raise SystemExit()
+        else:
+            raise
+
     controller = Controller(args.width, args.height, args.period, leds, args.debug)
-
+    loop = asyncio.get_event_loop()
     def cleanup():
         loop.stop()
         if args.clear:
