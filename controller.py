@@ -18,8 +18,10 @@ class Controller:
         if self.debug:
             print(addr, args)
         if addr == '/bright':
+            self.last = None
             self.leds.brightness(*args)
         elif addr == '/gamma':
+            self.last = None
             self.leds.gamma(*args)
         elif addr == '/clear':
             self.layers = {}
