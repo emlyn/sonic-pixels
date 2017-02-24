@@ -8,10 +8,12 @@ except ImportError:
     realpixels = False
 
 
-def col(c):
-    if isinstance(c, tuple):
-        return Color(*c[:3])
-    return Color(*spectra.html(c).color_object.get_upscaled_value_tuple())
+def col(c, gamma=None):
+    if not isinstance(c, tuple):
+        c = spectra.html(c).color_object.get_upscaled_value_tuple()
+    if gamma:
+        c = tuple(int(((i / 255.0) ** gamma) * 255) for i in c)
+    return Color(*c[:3])
 
 
 class LEDStrip:
@@ -23,11 +25,11 @@ class LEDStrip:
               'bgr': ws.WS2811_STRIP_BGR,
               'rgbw': ws.SK6812_STRIP_RGBW}
 
-    def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert,
-                 bright, debug):
+    def __init__(self, kind, leds, freq, pin, dma, channel, strip, invert, bright, gamma, debug):
         # bg: solid, gradient, fade
         # fg: drop, flash, sparkle
         strip_type = self.STRIPS[strip]
+        self._gamma = gamma
         if kind == 'real' or (kind == 'auto' and realpixels):
             if not realpixels:
                 raise Exception("Can't load library for real pixels")
@@ -43,25 +45,29 @@ class LEDStrip:
         self.leds.setBrightness(bright)
         self._display()
 
+    def gamma(self, val):
+        self._gamma = val
+        self._display()
+
     def clear(self):
         self.solid('#000')
 
     def solid(self, colour):
         n = self.leds.numPixels()
-        c = col(colour)
+        c = col(colour, self._gamma)
         self.leds.setPixelColor(slice(0, n), [c]*n)
         self._display()
 
     def gradient(self, colour1, colour2):
         n = self.leds.numPixels()
-        pix = [col(c) for c in colour.Color(colour1).range_to(colour2, n)]
+        pix = [col(c, self._gamma) for c in colour.Color(colour1).range_to(colour2, n)]
         self.leds.setPixelColor(slice(0, n), pix)
         self._display()
 
     def image(self, image):
         data = image.getdata()
         n = min(self.leds.numPixels(), len(data))
-        pix = [col(c) for c in data]
+        pix = [col(c, self._gamma) for c in data]
         self.leds.setPixelColor(slice(0, n), pix)
         self._display()
 

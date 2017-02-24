@@ -19,6 +19,8 @@ if __name__ == "__main__":
                         help="Don't clear LEDs on exit")
     parser.add_argument("--bright", type=int, default=255,
                         help="Initial brightness of LED strip (0-255)")
+    parser.add_argument("--gamma", type=float, default=None,
+                        help="Initial gamma correction for LED strip")
     parser.add_argument("--strip", default='grb',
                         choices=['rgb', 'rbg', 'grb', 'gbr',
                                  'brg', 'bgr', 'rgbw'])
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     try:
         leds = LEDStrip(args.kind, args.width * args.height, args.freq, args.gpio,
                         args.dma, args.channel, args.strip, args.invert,
-                        args.bright, args.debug)
+                        args.bright, args.gamma, args.debug)
     except RuntimeError:
         if os.geteuid() != 0:
             print("Unable to initialise LED strip, you probably need to run with sudo")

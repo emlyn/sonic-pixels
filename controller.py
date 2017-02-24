@@ -19,7 +19,9 @@ class Controller:
             print(addr, args)
         if addr == '/bright':
             self.leds.brightness(*args)
-        if addr == '/clear':
+        elif addr == '/gamma':
+            self.leds.gamma(*args)
+        elif addr == '/clear':
             self.layers = {}
         elif addr == '/bg':
             prev = self.layers[10][1] if 10 in self.layers else None
