@@ -1,3 +1,4 @@
+import random
 import spectra
 from PIL import Image
 from bisect import bisect_right
@@ -127,3 +128,29 @@ class FlashFX(FXBase):
             return None
         a = (time - self.start_t) / self.time
         return Image.blend(self.img, self.trans, a)
+
+
+class SparkleFX(FXBase):
+    def __init__(self, size, time, fade, nspark, *colours):
+        super().__init__(size)
+        self.start_t = None
+        self.time = time
+        self.fade = fade
+        self.nspark = nspark
+        self.colours = colours if len(colours) > 0 else ['white']
+        self.colours = [spectra.html(c).color_object.get_upscaled_value_tuple()
+                        for c in self.colours]
+        self.img = Image.new('RGBA', size, (0, 0, 0, 0))
+        self.trans = Image.new('RGBA', size, (0, 0, 0, 0))
+
+    def getDisplay(self, time, previous):
+        if self.start_t is None:
+            self.start_t = time
+        if time > self.start_t + self.time * 2:
+            return None
+        self.img = Image.blend(self.img, self.trans, self.fade)
+        if time < self.start_t + self.time:
+            pix = self.img.load()
+            for i in range(self.nspark):
+                pix[random.randrange(self.size[0]), random.randrange(self.size[1])] = random.choice(self.colours)
+        return self.img
