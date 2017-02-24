@@ -19,6 +19,8 @@ class Controller:
             print(addr, args)
         if addr == '/bright':
             self.leds.brightness(*args)
+        if addr == '/clear':
+            self.layers = {}
         elif addr == '/bg':
             prev = self.layers[10][1] if 10 in self.layers else None
             self.layers[10] = [SolidFX(self.size, *args), prev]
