@@ -40,6 +40,9 @@ class Controller:
         elif addr == '/sparkle':
             prev = self.layers[40][1] if 40 in self.layers else None
             self.layers[40] = [SparkleFX(self.size, *args), prev]
+        elif addr == '/flame':
+            prev = self.layers[50][1] if 50 in self.layers else None
+            self.layers[50] = [FlameFX(self.size, *args), prev]
         else:
             print("Unrecognised CMD:", addr, args)
         self.handle.cancel()

@@ -2,7 +2,7 @@ import spectra
 from PIL import Image
 from bisect import bisect_right
 from numbers import Number
-from random import choice, randrange
+from random import choice, random, randrange
 
 
 def gradient(size, colours):
@@ -178,3 +178,48 @@ class SparkleFX(FXBase):
                 pix[randrange(self.size[0]), randrange(self.size[1])] = choice(self.colours)
         self.prev_t = time
         return self.img
+
+
+class FlameFX(FXBase):
+    # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
+    def __init__(self, size, *args):
+        super().__init__(size)
+        self.flame = [0.0] * size[0]
+        self.cooling = args[0] if len(args) > 0 else 1
+        self.sparking = args[1] if len(args) > 1 else 1
+        self.kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2]
+
+    def parse_kernel(self, s):
+        return [int(c) for c in s]
+
+    def getDisplay(self, time, previous):
+        f = self.flame
+        # Cool down every cell a little
+        for i in range(len(self.flame)):
+            f[i] = max(0.0, f[i] - random() * 3 * self.cooling / len(f))
+        # Heat from each cell drifts 'up' and diffuses a little
+        n = sum(self.kernel)
+        for i in reversed(range(len(self.kernel) - 1, len(f))):
+            s = 0
+            for k, v in enumerate(self.kernel):
+                s += v * f[i - k]
+            f[i] = s / n
+        # Randomly ignite new 'sparks' near the bottom
+        if random() < 1 / self.sparking:
+            pos = round(random() * len(f) / 8)
+            f[pos] = min(1.0, f[pos] + random() * 0.35 + 0.6)
+        # Convert heat to LED colors
+        img = Image.new('RGBA', self.size)
+        pix = img.load()
+        for i in range(len(f)):
+            if f[i] < 0.333:
+                p = (255, 0, 0, int(f[i] * 255 / 0.333))
+            elif f[i] < 0.666:
+                p = (255, int((f[i] - 0.333) * 255 / 0.333), 0, 255)
+            elif f[i] < 0.999:
+                p = (255, 255, int((f[i] - 0.666) * 255 / 0.333), 255)
+            else:
+                p = (255, 255, 255, 255)
+            for j in range(self.size[1]):
+                pix[i, j] = p
+        return img
