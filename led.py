@@ -1,4 +1,4 @@
-import spectra
+from PIL import ImageColor
 from fakepixel import Fake_NeoPixel
 try:
     from neopixel import Adafruit_NeoPixel, Color, ws
@@ -10,7 +10,7 @@ except ImportError:
 
 def col(c, gamma=None):
     if not isinstance(c, tuple):
-        c = spectra.html(c).color_object.get_upscaled_value_tuple()
+        c = ImageColor.getrgb(c)
     if gamma:
         c = tuple(int(((i / 255.0) ** gamma) * 255) for i in c)
     return Color(*c[:3])

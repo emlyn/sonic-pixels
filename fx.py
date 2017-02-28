@@ -1,5 +1,5 @@
 import spectra
-from PIL import Image
+from PIL import Image, ImageColor
 from bisect import bisect_right
 from numbers import Number
 from random import choice, random, randrange
@@ -156,8 +156,7 @@ class SparkleFX(FXBase):
             args = args[1:]
         else:
             self.nspark = 10
-        self.colours = [spectra.html(c).color_object.get_upscaled_value_tuple()
-                        for c in (args if len(args) > 0 else ['white'])]
+        self.colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
         self.img = Image.new('RGBA', size, (0, 0, 0, 0))
         self.trans = Image.new('RGBA', size, (0, 0, 0, 0))
 
@@ -182,6 +181,7 @@ class SparkleFX(FXBase):
 
 class FlameFX(FXBase):
     # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
+    # TODO: hide first few pixels before the start of LEDs
     def __init__(self, size, *args):
         super().__init__(size)
         self.flame = [0.0] * size[0]
@@ -196,7 +196,9 @@ class FlameFX(FXBase):
         f = self.flame
         # Cool down every cell a little
         for i in range(len(self.flame)):
-            f[i] = max(0.0, f[i] - random() * 3 * self.cooling / len(f))
+            f[i] -= random() * 3 * self.cooling / len(f)
+            if f[i] < 0.0:
+                f[i] = 0.0
         # Heat from each cell drifts 'up' and diffuses a little
         n = sum(self.kernel)
         for i in reversed(range(len(self.kernel) - 1, len(f))):
@@ -207,17 +209,19 @@ class FlameFX(FXBase):
         # Randomly ignite new 'sparks' near the bottom
         if random() < 1 / self.sparking:
             pos = round(random() * len(f) / 8)
-            f[pos] = min(1.0, f[pos] + random() * 0.35 + 0.6)
+            f[pos] += random() * 0.35 + 0.6
+            if f[pos] > 1.0:
+                f[pos] = 1.0
         # Convert heat to LED colors
         img = Image.new('RGBA', self.size)
         pix = img.load()
         for i in range(len(f)):
-            if f[i] < 0.333:
-                p = (255, 0, 0, int(f[i] * 255 / 0.333))
-            elif f[i] < 0.666:
-                p = (255, int((f[i] - 0.333) * 255 / 0.333), 0, 255)
-            elif f[i] < 0.999:
-                p = (255, 255, int((f[i] - 0.666) * 255 / 0.333), 255)
+            if f[i] < 0.5:
+                p = (255, 0, 0, int(f[i] * 255 / 0.5))
+            elif f[i] < 0.8:
+                p = (255, int((f[i] - 0.5) * 255 / 0.3), 0, 255)
+            elif f[i] < 1:
+                p = (255, 255, int((f[i] - 0.8) * 255 / 0.2), 255)
             else:
                 p = (255, 255, 255, 255)
             for j in range(self.size[1]):
