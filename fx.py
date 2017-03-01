@@ -1,4 +1,4 @@
-import spectra
+import colour
 from PIL import Image, ImageColor
 from bisect import bisect_right
 from numbers import Number
@@ -6,15 +6,15 @@ from random import choice, random, randrange
 
 
 def gradient(size, colours):
-    if len(colours) < 2:
-        return Image.new('RGBA', size, colours[0] if len(colours) > 0 else 'black')
     img = Image.new('RGBA', size)
     pix = img.load()
-    scale = spectra.scale(colours)
+    if len(colours) == 0:
+        colours = ['black']
+    scale = colour.scale(*colours)
     for x in range(size[0]):
         c = scale(x / (size[0] - 1.0))
         for y in range(size[1]):
-            pix[x, y] = c.color_object.get_upscaled_value_tuple()
+            pix[x, y] = c
     return img
 
 
@@ -188,6 +188,7 @@ class FlameFX(FXBase):
         self.cooling = args[0] if len(args) > 0 else 1
         self.sparking = args[1] if len(args) > 1 else 1
         self.kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2]
+        self.palette = colour.scale('flame')
 
     def parse_kernel(self, s):
         return [int(c) for c in s]
@@ -216,14 +217,6 @@ class FlameFX(FXBase):
         img = Image.new('RGBA', self.size)
         pix = img.load()
         for i in range(len(f)):
-            if f[i] < 0.5:
-                p = (255, 0, 0, int(f[i] * 255 / 0.5))
-            elif f[i] < 0.8:
-                p = (255, int((f[i] - 0.5) * 255 / 0.3), 0, 255)
-            elif f[i] < 1:
-                p = (255, 255, int((f[i] - 0.8) * 255 / 0.2), 255)
-            else:
-                p = (255, 255, 255, 255)
             for j in range(self.size[1]):
-                pix[i, j] = p
+                pix[i, j] = self.palette(f[i])
         return img
