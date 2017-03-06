@@ -1,6 +1,7 @@
 import colour
 from PIL import Image, ImageColor
 from bisect import bisect_right
+from math import exp
 from numbers import Number
 from random import choice, random, randrange
 
@@ -180,18 +181,28 @@ class SparkleFX(FXBase):
 
 
 class FlameFX(FXBase):
+    EXTRA = 10 # Extra pixels before start of strip where sparks are generated
     # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
-    # TODO: hide first few pixels before the start of LEDs
     def __init__(self, size, *args):
         super().__init__(size)
-        self.flame = [0.0] * size[0]
-        self.cooling = args[0] if len(args) > 0 else 1
-        self.sparking = args[1] if len(args) > 1 else 1
-        self.kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2]
+        self.flame = [0.0] * (size[0] + FlameFX.EXTRA)
+        self.sparking = args[0] if len(args) > 0 else 1 # Average number of sparks per frame
+        self.cooling = args[1] if len(args) > 1 else 1 # Cooling rate
+        self.kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2] # Drift + diffusion
         self.palette = colour.scale('flame')
 
     def parse_kernel(self, s):
         return [int(c) for c in s]
+
+    def nsparks(self):
+        # Poisson distributed random number with mean self.sparking
+        l = exp(-self.sparking)
+        k = 0
+        p = 1
+        while p > l:
+            k += 1
+            p *= random()
+        return k - 1
 
     def getDisplay(self, time, previous):
         f = self.flame
@@ -199,24 +210,31 @@ class FlameFX(FXBase):
         for i in range(len(self.flame)):
             f[i] -= random() * 3 * self.cooling / len(f)
             if f[i] < 0.0:
+                # Clamp pixel heat to minimum of 0
                 f[i] = 0.0
         # Heat from each cell drifts 'up' and diffuses a little
-        n = sum(self.kernel)
-        for i in reversed(range(len(self.kernel) - 1, len(f))):
+        for i in reversed(range(1, len(f))):
+            n = 0
             s = 0
             for k, v in enumerate(self.kernel):
-                s += v * f[i - k]
-            f[i] = s / n
-        # Randomly ignite new 'sparks' near the bottom
-        if random() < 1 / self.sparking:
-            pos = round(random() * len(f) / 8)
-            f[pos] += random() * 0.35 + 0.6
+                if i - k >= 0:
+                    n += v
+                    s += v * f[i - k]
+            f[i] = s / n if n > 0 else 0
+        # Randomly ignite new 'sparks' off the end of the strip
+        for i in range(self.nsparks()):
+            # Pick a random pixel in the off-strip area
+            pos = int(random() * FlameFX.EXTRA)
+            # Spark heat in range 0.5 - 1
+            f[pos] += random() * 0.5 + 0.5
             if f[pos] > 1.0:
+                # Clamp pixel heat to maximum of 1
                 f[pos] = 1.0
         # Convert heat to LED colors
         img = Image.new('RGBA', self.size)
         pix = img.load()
-        for i in range(len(f)):
+        for i in range(self.size[0]):
+            p = self.palette(f[i + FlameFX.EXTRA])
             for j in range(self.size[1]):
-                pix[i, j] = self.palette(f[i])
+                pix[i, j] = p
         return img
