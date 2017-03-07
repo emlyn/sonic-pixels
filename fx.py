@@ -1,7 +1,7 @@
 import colour
 from PIL import Image, ImageColor
 from bisect import bisect_right
-from math import exp
+from math import exp, sqrt
 from numbers import Number
 from random import choice, random, randrange
 
@@ -91,14 +91,23 @@ class ChaseFX(FXBase):
             self.width = args[0]
             args = args[1:]
         else:
-            self.width = 1
+            self.width = max(size[0] // 10, 4)
         if len(args) > 0 and isinstance(args[0], Number):
             self.fade = args[0]
             args = args[1:]
         else:
-            self.fade = 1
+            self.fade = int(sqrt(max(self.width, 0) / 1.5))
         self.sprite = gradient((self.width, size[1]), args if len(args) > 0 else ['white'])
-        # TODO: fade edges (or better render in getDisplay with antialiasing)
+        pix = self.sprite.load()
+        for x in range(min(self.fade, (self.width + 1) // 2)):
+            v = (x + 1) / (self.fade + 1)
+            for y in range(size[1]):
+                p = pix[x, y]
+                pix[x, y] = p[0:3] + (int(p[3] * v),)
+                if x < self.width // 2:
+                    # Dont double-fade central pixel on odd widths
+                    p = pix[self.width - 1 - x, y]
+                    pix[self.width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
 
     def getDisplay(self, time, previous):
         if self.start_t is None:
