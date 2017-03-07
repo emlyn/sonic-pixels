@@ -3,6 +3,16 @@ from PIL import Image
 from fx import *
 
 
+def fixup(a):
+    if not isinstance(a, int):
+        return a
+    if a < 0x80000000:
+        return a
+    if a >= 0x100000000:
+        return a
+    return a - 0x100000000
+
+
 class Controller:
     def __init__(self, width, height, period, leds, debug):
         self.period = period
@@ -15,6 +25,7 @@ class Controller:
         self.last = None
 
     def handler(self, addr, *args):
+        args = tuple(fixup(a) for a in args)
         if self.debug:
             print(addr, args)
         if addr == '/bright':
