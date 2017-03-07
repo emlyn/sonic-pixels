@@ -13,7 +13,11 @@ def gradient(size, colours):
         colours = ['black']
     scale = colour.scale(*colours)
     for x in range(size[0]):
-        c = scale(x / (size[0] - 1.0))
+        if size[0] < 2:
+            i = 0.5
+        else:
+            i = x / (size[0] - 1.0)
+        c = scale(i)
         for y in range(size[1]):
             pix[x, y] = c
     return img
