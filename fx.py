@@ -82,7 +82,7 @@ class FadeFX(FXBase):
         return Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
 
 
-class ChaseFX(FXBase):
+class SlideFX(FXBase):
     def __init__(self, size, *args):
         self.start_t = None
         self.size = size
@@ -123,6 +123,75 @@ class ChaseFX(FXBase):
         if self.time < 0:
             a = 1 - a
         x = round(a * (self.size[0] + self.width) - self.width)
+        img.paste(self.sprite, (x, 0))
+        return img
+
+
+class ChaseFX(FXBase):
+    def __init__(self, size, *args):
+        self.start_t = None
+        self.size = size
+
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.time = args[0]
+            args = args[1:]
+        else:
+            self.time = 1
+
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.ratio = args[0]
+            args = args[1:]
+        else:
+            self.ratio = 0.05
+
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.reps = args[0]
+            args = args[1:]
+        else:
+            self.reps = -1
+
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.width = args[0]
+            args = args[1:]
+        else:
+            self.width = max(size[0] // 10, 4)
+
+        if len(args) > 0 and isinstance(args[0], Number):
+            self.fade = args[0]
+            args = args[1:]
+        else:
+            self.fade = int(sqrt(max(self.width, 0) / 1.5))
+
+        self.sprite = gradient((self.width, size[1]), args if len(args) > 0 else ['white'])
+        pix = self.sprite.load()
+        for x in range(min(self.fade, (self.width + 1) // 2)):
+            v = (x + 1) / (self.fade + 1)
+            for y in range(size[1]):
+                p = pix[x, y]
+                pix[x, y] = p[0:3] + (int(p[3] * v),)
+                if x < self.width // 2:
+                    # Dont double-fade central pixel on odd widths
+                    p = pix[self.width - 1 - x, y]
+                    pix[self.width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
+
+    def getDisplay(self, time, previous):
+        if self.start_t is None:
+            self.start_t = time
+        if self.reps >= 0 and (time > self.start_t + abs(self.time) * self.reps):
+            return None
+        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        t = time - self.start_t
+        if self.time < 0:
+            t -= self.time
+        t %= abs(2 * self.time)
+        d = 1
+        if t > abs(self.time):
+            t -= abs(self.time)
+            d = -1
+        a = min(1.0, t / abs(self.time * (1.0 - self.ratio)))
+        if d < 0:
+            a = 1.0 - a
+        x = round(a * (self.size[0] - self.width))
         img.paste(self.sprite, (x, 0))
         return img
 

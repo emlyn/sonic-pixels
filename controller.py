@@ -45,14 +45,17 @@ class Controller:
         elif addr == '/chase':
             prev = self.layers[20][1] if 20 in self.layers else None
             self.layers[20] = [ChaseFX(self.size, *args), prev]
+        elif addr == '/slide':
+            prev = self.layers[30][1] if 20 in self.layers else None
+            self.layers[20] = [SlideFX(self.size, *args), prev]
         elif addr == '/flash':
-            prev = self.layers[30][1] if 30 in self.layers else None
+            prev = self.layers[40][1] if 30 in self.layers else None
             self.layers[30] = [FlashFX(self.size, *args), prev]
         elif addr == '/sparkle':
-            prev = self.layers[40][1] if 40 in self.layers else None
+            prev = self.layers[50][1] if 40 in self.layers else None
             self.layers[40] = [SparkleFX(self.size, *args), prev]
         elif addr == '/flame':
-            prev = self.layers[50][1] if 50 in self.layers else None
+            prev = self.layers[60][1] if 50 in self.layers else None
             self.layers[50] = [FlameFX(self.size, *args), prev]
         else:
             print("Unrecognised CMD:", addr, args)
