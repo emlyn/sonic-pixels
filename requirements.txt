@@ -1,4 +1,4 @@
-python-osc>=1.6.2
+python-osc>=1.6.3
 Pillow>=4.0.0
 # Requires native library be installed first:
 #-e git+https://github.com/emlyn/rpi_ws281x@patch-1#egg=rpi_ws281x&subdirectory=python
