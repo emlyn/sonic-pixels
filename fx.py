@@ -1,16 +1,18 @@
 import colour
-from PIL import Image, ImageColor
+from PIL import Image, ImageChops, ImageColor
 from bisect import bisect_right
 from math import exp, sqrt
 from numbers import Number
 from random import choice, random, randrange
 
 
-def gradient(size, colours):
+def gradient(size, colours, ring=False):
     img = Image.new('RGBA', size)
     pix = img.load()
     if len(colours) == 0:
         colours = ['black']
+    if ring:
+        colours.append(colours[0])
     scale = colour.scale(*colours)
     for x in range(size[0]):
         if size[0] < 2:
@@ -80,6 +82,47 @@ class FadeFX(FXBase):
         i = bisect_right(self.imgs, [time - self.start_t, None])
         a = (time - self.start_t - self.imgs[i-1][0]) / (self.imgs[i][0] - self.imgs[i-1][0])
         return Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
+
+
+class SpinFX(FXBase):
+    def __init__(self, size, period, *vals):
+        super().__init__(size)
+        self.start_t = None
+        self.start_img = None
+        self.imgs = []
+        self.period = period
+        cols = []
+        tlast = 0
+        for v in vals:
+            if isinstance(v, Number):
+                if len(cols) == 0 and len(self.imgs) == 0:
+                    img = None
+                else:
+                    img = gradient(size, cols, True)
+                self.imgs.append([tlast, img])
+                tlast += v
+                cols = []
+            else:
+                cols.append(v)
+        self.imgs.append([tlast, gradient(size, cols, True)])
+
+    def getDisplay(self, time, previous):
+        if self.start_t is None:
+            self.start_t = time
+        if self.imgs[0][1] is None:
+            if previous is None:
+                self.imgs[0][1] = gradient(self.size, [])
+            else:
+                self.imgs[0][1] = previous
+        if time <= self.start_t:
+            return self.imgs[0][1]
+        elif time >= self.start_t + self.imgs[-1][0]:
+            return None
+        i = bisect_right(self.imgs, [time - self.start_t, None])
+        a = (time - self.start_t - self.imgs[i-1][0]) / (self.imgs[i][0] - self.imgs[i-1][0])
+        img = Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
+        shift = int(img.size[0] * (time - self.start_t) / self.period)
+        return ImageChops.offset(img, shift, 0)
 
 
 class SlideFX(FXBase):
