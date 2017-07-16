@@ -49,6 +49,8 @@ class Controller:
         elif addr == '/flame':
             prev = self.layers[80][1] if 80 in self.layers else None
             self.layers[80] = [FlameFX(self.size, *args), prev]
+        elif addr == '/kill':
+            self.layers = {}
         else:
             print("Unrecognised CMD:", addr, args)
         self.handle.cancel()
