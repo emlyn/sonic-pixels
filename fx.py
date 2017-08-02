@@ -6,24 +6,6 @@ from numbers import Number
 from random import choice, random, randrange
 
 
-def gradient(size, colours, ring=False):
-    img = Image.new('RGBA', size)
-    pix = img.load()
-    if len(colours) == 0:
-        colours = ['black']
-    if ring:
-        colours.append(colours[0])
-    scale = colour.scale(*colours)
-    for x in range(size[0]):
-        if size[0] < 2:
-            i = 0.5
-        else:
-            i = x / (size[0] - 1.0)
-        c = scale(i)
-        for y in range(size[1]):
-            pix[x, y] = c
-    return img
-
 class FXBase(object):
     def __init__(self, size, prev, args):
         self.size = size
@@ -38,6 +20,25 @@ class FXBase(object):
         if nm == '_params':
             raise Exception("Can't use params during initialisation")
         return self._params[nm]
+
+    def new_image(self, *colours, size=None, ring=False):
+        if size is None:
+            size = self.size
+        if len(colours) == 0:
+            colours = ['black']
+        if ring:
+            colours.append(colours[0])
+        scale = colour.scale(*colours)
+        #if scale.single_colour():
+        #    return Image.new('RGBA', size, scale(0))
+        img = Image.new('RGBA', size)
+        pix = img.load()
+        for x in range(size[0]):
+            i = 0.5 if size[0] < 2 else x / (size[0] - 1.0)
+            c = scale(i)
+            for y in range(size[1]):
+                pix[x, y] = c
+        return img
 
     def params(self, args):
         return {}
@@ -57,7 +58,7 @@ class FXBase(object):
 
 class SolidFX(FXBase):
     def params(self, colours):
-        return dict(_img=gradient(self.size, colours))
+        return dict(_img=self.new_image(*colours))
 
     def render(self):
         return self._img
@@ -73,13 +74,13 @@ class FadeFX(FXBase):
                 if len(cols) == 0 and len(imgs) == 0:
                     img = None
                 else:
-                    img = gradient(self.size, cols)
+                    img = self.new_image(*cols)
                 imgs.append([tlast, img])
                 tlast += v
                 cols = []
             else:
                 cols.append(v)
-        imgs.append([tlast, gradient(self.size, cols)])
+        imgs.append([tlast, self.new_image(*cols)])
         return dict(_imgs=imgs)
 
     def render(self):
@@ -107,13 +108,13 @@ class SpinFX(FXBase):
                 if len(cols) == 0 and len(self.imgs) == 0:
                     img = None
                 else:
-                    img = gradient(self.size, cols, True)
+                    img = self.new_image(*cols, True)
                 imgs.append([tlast, img])
                 tlast += v
                 cols = []
             else:
                 cols.append(v)
-        imgs.append([tlast, gradient(self.size, cols, True)])
+        imgs.append([tlast, self.new_image(*cols, True)])
         return dict(period=period, _imgs=imgs)
 
     def render(self):
@@ -145,7 +146,9 @@ class SlideFX(FXBase):
         if len(args) > 0 and isinstance(args[0], Number):
             fade = args[0]
             args = args[1:]
-        sprite = gradient((width, self.size[1]), args if len(args) > 0 else ['white'])
+        sprite_cols = args if len(args) > 0 else ['white']
+        sprite_size = (width, self.size[1])
+        sprite = self.new_image(*sprite_cols, size=sprite_size)
         pix = sprite.load()
         for x in range(min(fade, (width + 1) // 2)):
             v = (x + 1) / (fade + 1)
@@ -161,7 +164,7 @@ class SlideFX(FXBase):
     def render(self):
         if self.time > self.start_time + abs(self.period):
             return None
-        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        img = self.new_image('transparent')
         a = (self.time - self.start_time) / abs(self.period)
         if self.period < 0:
             a = 1 - a
@@ -197,7 +200,9 @@ class ChaseFX(FXBase):
             fade = args[0]
             args = args[1:]
 
-        sprite = gradient((width, self.size[1]), args if len(args) > 0 else ['white'])
+        sprite_cols = args if len(args) > 0 else ['white']
+        sprite_size = (width, self.size[1])
+        sprite = self.new_image(*sprite_cols, size=sprite_size)
         pix = sprite.load()
         for x in range(min(fade, (width + 1) // 2)):
             v = (x + 1) / (fade + 1)
@@ -213,7 +218,7 @@ class ChaseFX(FXBase):
     def render(self):
         if self.reps >= 0 and (self.time > self.start_time + abs(self.period) * self.reps):
             return None
-        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        img = self.new_image('transparent')
         t = self.time - self.start_time
         if self.period < 0:
             t -= self.period
@@ -236,8 +241,8 @@ class FlashFX(FXBase):
         if len(args) > 0 and isinstance(args[0], Number):
             period = args[0]
             args = args[1:]
-        img = gradient(self.size, args)
-        trans = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        img = self.new_image(*args)
+        trans = self.new_image('transparent')
         return dict(period=period, _img=img, _trans=trans)
 
     def render(self):
@@ -264,9 +269,8 @@ class SparkleFX(FXBase):
             nspark = args[0]
             args = args[1:]
         colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
-        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
-        trans = Image.new('RGBA', self.size, (0, 0, 0, 0))
-        return dict(period=period, fade=fade, nspark=nspark, colours=colours, _img=img, _trans=trans)
+        img = self.new_image('transparent')
+        return dict(period=period, fade=fade, nspark=nspark, colours=colours, _img=img)
 
     def render(self):
         if self.time > self.start_time + self.period + self.fade:
@@ -335,7 +339,7 @@ class FlameFX(FXBase):
                 # Clamp pixel heat to maximum of 1
                 f[pos] = 1.0
         # Convert heat to LED colors
-        img = Image.new('RGBA', self.size)
+        img = self.new_image('transparent')
         pix = img.load()
         for i in range(self.size[0]):
             p = self._palette(f[i + FlameFX.EXTRA])
