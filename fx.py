@@ -173,9 +173,9 @@ class ChaseFX(FXBase):
             period = args[0]
             args = args[1:]
 
-        ratio = 0.05
+        stop = 0.05
         if len(args) > 0 and isinstance(args[0], Number):
-            ratio = args[0]
+            stop = args[0]
             args = args[1:]
 
         reps = -1
@@ -206,7 +206,7 @@ class ChaseFX(FXBase):
                     # Dont double-fade central pixel on odd widths
                     p = pix[width - 1 - x, y]
                     pix[width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
-        return dict(period=period, ratio=ratio, reps=reps, width=width, fade=fade)
+        return dict(period=period, stop=stop, reps=reps, width=width, fade=fade)
 
     def render(self):
         if self.reps >= 0 and (self.time > self.start_time + abs(self.period) * self.reps):
@@ -220,7 +220,7 @@ class ChaseFX(FXBase):
         if t > abs(self.period):
             t -= abs(self.period)
             d = -1
-        a = min(1.0, t / abs(self.period * (1.0 - self.ratio)))
+        a = min(1.0, t / abs(self.period * (1.0 - self.stop)))
         if d < 0:
             a = 1.0 - a
         x = round(a * (self.size[0] - self.width))
