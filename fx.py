@@ -27,7 +27,7 @@ class FXBase(object):
         if len(colours) == 0:
             colours = ['transparent']
         if ring and len(colours) > 1:
-            colours.append(colours[0])
+            colours += (colours[0],)
         scale = colour.scale(*colours)
         if scale.is_flat():
             return Image.new('RGBA', size, scale(0))
@@ -102,13 +102,13 @@ class SpinFX(FXBase):
         tlast = 0
         for v in args:
             if isinstance(v, Number):
-                img = self.new_image(*cols, True)
+                img = self.new_image(*cols, ring=True)
                 imgs.append([tlast, img])
                 tlast += v
                 cols = []
             else:
                 cols.append(v)
-        imgs.append([tlast, self.new_image(*cols, True)])
+        imgs.append([tlast, self.new_image(*cols, ring=True)])
         self.imgs = imgs
         return dict(period=period)
 
