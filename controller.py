@@ -26,32 +26,32 @@ class Controller:
         elif addr == '/clear':
             self.layers = {}
         elif addr == '/bg':
-            prev = self.layers[10][1] if 10 in self.layers else None
-            self.layers[10] = [SolidFX(self.size, *args), prev]
+            prev = self.layers[10].image if 10 in self.layers else None
+            self.layers[10] = SolidFX(self.size, prev, args)
         elif addr == '/fade':
-            prev = self.layers[20][1] if 20 in self.layers else None
-            self.layers[20] = [FadeFX(self.size, *args), prev]
+            prev = self.layers[20].image if 20 in self.layers else None
+            self.layers[20] = FadeFX(self.size, prev, args)
         elif addr == '/spin':
-            prev = self.layers[30][1] if 30 in self.layers else None
-            self.layers[30] = [SpinFX(self.size, *args), prev]
+            prev = self.layers[30].image if 30 in self.layers else None
+            self.layers[30] = SpinFX(self.size, prev, args)
         elif addr == '/chase':
-            prev = self.layers[40][1] if 40 in self.layers else None
-            self.layers[40] = [ChaseFX(self.size, *args), prev]
+            prev = self.layers[40].image if 40 in self.layers else None
+            self.layers[40] = ChaseFX(self.size, prev, args)
         elif addr == '/slide':
-            prev = self.layers[50][1] if 50 in self.layers else None
-            self.layers[50] = [SlideFX(self.size, *args), prev]
+            prev = self.layers[50].image if 50 in self.layers else None
+            self.layers[50] = SlideFX(self.size, prev, args)
         elif addr == '/flash':
-            prev = self.layers[60][1] if 60 in self.layers else None
-            self.layers[60] = [FlashFX(self.size, *args), prev]
+            prev = self.layers[60].image if 60 in self.layers else None
+            self.layers[60] = FlashFX(self.size, prev, args)
         elif addr == '/sparkle':
-            prev = self.layers[70][1] if 70 in self.layers else None
-            self.layers[70] = [SparkleFX(self.size, *args), prev]
+            prev = self.layers[70].image if 70 in self.layers else None
+            self.layers[70] = SparkleFX(self.size, prev, args)
         elif addr == '/flame':
-            prev = self.layers[80][1] if 80 in self.layers else None
+            prev = self.layers[80].image if 80 in self.layers else None
             self.layers[80] = [FlameFX(self.size, *args), prev]
         elif addr == '/mod':
-            prev = self.layers[80][1] if 80 in self.layers else None
-            self.layers[80] = [FadeFX(self.size, *args), prev]
+            prev = self.layers[90].image if 90 in self.layers else None
+            self.layers[90] = [FadeFX(self.size, *args), prev]
         elif addr == '/kill':
             self.layers = {}
         else:
@@ -62,9 +62,8 @@ class Controller:
     def update(self, time):
         img = Image.new('RGBA', self.size, (0, 0, 0, 255))
         for n in sorted(self.layers.keys()):
-            layer, prev = self.layers[n]
-            nextimg = layer.getDisplay(time, prev)
-            self.layers[n][1] = nextimg
+            layer = self.layers[n]
+            nextimg = layer.next_image(time, img)
             if nextimg is not None:
                 img = Image.alpha_composite(img, nextimg)
         if img != self.last:

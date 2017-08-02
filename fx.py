@@ -24,297 +24,276 @@ def gradient(size, colours, ring=False):
             pix[x, y] = c
     return img
 
-
 class FXBase(object):
-    def __init__(self, size):
-        self.start_time = None
+    def __init__(self, size, prev, args):
         self.size = size
+        self.time = None
+        self.start_time = None
+        self.previous_time = None
+        self.image = prev
+        self.background = None
+        self._params = self.params(args)
 
-    def start(self, start_time):
-        self.start_time = start_time
+    def __getattr__(self, nm):
+        if nm == '_params':
+            raise Exception("Can't use params during initialisation")
+        return self._params[nm]
 
-    def getDisplay(self, time, previous):
-        raise NotImplementedError("FX implementations must implement getDisplay")
+    def params(self, args):
+        return {}
+
+    def render(self):
+        raise NotImplementedError("FX implementations must implement render")
+
+    def next_image(self, time, background):
+        if self.start_time is None:
+            self.start_time = time
+        self.previous_time = self.time
+        self.time = time
+        self.background = background
+        self.image = self.render()
+        return self.image
 
 
 class SolidFX(FXBase):
-    def __init__(self, size, *colours):
-        super().__init__(size)
-        self.img = gradient(size, colours)
+    def params(self, colours):
+        return dict(_img=gradient(self.size, colours))
 
-    def getDisplay(self, time, previous):
-        return self.img
+    def render(self):
+        return self._img
 
 
 class FadeFX(FXBase):
-    def __init__(self, size, *vals):
-        super().__init__(size)
-        self.start_t = None
-        self.start_img = None
-        self.imgs = []
+    def params(self, vals):
+        imgs = []
         cols = []
         tlast = 0
         for v in vals:
             if isinstance(v, Number):
-                if len(cols) == 0 and len(self.imgs) == 0:
+                if len(cols) == 0 and len(imgs) == 0:
                     img = None
                 else:
-                    img = gradient(size, cols)
-                self.imgs.append([tlast, img])
+                    img = gradient(self.size, cols)
+                imgs.append([tlast, img])
                 tlast += v
                 cols = []
             else:
                 cols.append(v)
-        self.imgs.append([tlast, gradient(size, cols)])
+        imgs.append([tlast, gradient(self.size, cols)])
+        return dict(_imgs=imgs)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if self.imgs[0][1] is None:
-            if previous is None:
-                self.imgs[0][1] = gradient(self.size, [])
-            else:
-                self.imgs[0][1] = previous
-        if time <= self.start_t:
-            return self.imgs[0][1]
-        elif time >= self.start_t + self.imgs[-1][0]:
-            return self.imgs[-1][1]
-        i = bisect_right(self.imgs, [time - self.start_t, None])
-        a = (time - self.start_t - self.imgs[i-1][0]) / (self.imgs[i][0] - self.imgs[i-1][0])
-        return Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
+    def render(self):
+        imgs = self._imgs
+        if imgs[0][1] is None:
+            imgs[0][1] = self.background
+        if self.time <= self.start_time:
+            return imgs[0][1]
+        elif self.time >= self.start_time + imgs[-1][0]:
+            return imgs[-1][1]
+        i = bisect_right(imgs, [self.time - self.start_time, None])
+        a = (self.time - self.start_time - imgs[i-1][0]) / (imgs[i][0] - imgs[i-1][0])
+        print('dbg i={}, a={}, imgs={}'.format(i, a, imgs))
+        return Image.blend(imgs[i-1][1], imgs[i][1], a)
 
 
 class SpinFX(FXBase):
-    def __init__(self, size, period, *vals):
-        super().__init__(size)
-        self.start_t = None
-        self.start_img = None
-        self.imgs = []
-        self.period = period
+    def params(self, args):
+        imgs = []
+        period = args[0]
         cols = []
         tlast = 0
-        for v in vals:
+        for v in args[1:]:
             if isinstance(v, Number):
                 if len(cols) == 0 and len(self.imgs) == 0:
                     img = None
                 else:
-                    img = gradient(size, cols, True)
-                self.imgs.append([tlast, img])
+                    img = gradient(self.size, cols, True)
+                imgs.append([tlast, img])
                 tlast += v
                 cols = []
             else:
                 cols.append(v)
-        self.imgs.append([tlast, gradient(size, cols, True)])
+        imgs.append([tlast, gradient(self.size, cols, True)])
+        return dict(period=period, _imgs=imgs)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if self.imgs[0][1] is None:
-            if previous is None:
-                self.imgs[0][1] = gradient(self.size, [])
-            else:
-                self.imgs[0][1] = previous
-        if time <= self.start_t:
-            return self.imgs[0][1]
-        elif time >= self.start_t + self.imgs[-1][0]:
+    def render(self):
+        imgs = self._imgs
+        if imgs[0][1] is None:
+            imgs[0][1] = self.background
+        if self.time <= self.start_time:
+            return imgs[0][1]
+        elif self.time >= self.start_time + imgs[-1][0]:
             return None
-        i = bisect_right(self.imgs, [time - self.start_t, None])
-        a = (time - self.start_t - self.imgs[i-1][0]) / (self.imgs[i][0] - self.imgs[i-1][0])
-        img = Image.blend(self.imgs[i-1][1], self.imgs[i][1], a)
-        shift = int(img.size[0] * (time - self.start_t) / self.period)
+        i = bisect_right(imgs, [self.time - self.start_time, None])
+        a = (self.time - self.start_time - imgs[i-1][0]) / (imgs[i][0] - imgs[i-1][0])
+        img = Image.blend(imgs[i-1][1], imgs[i][1], a)
+        shift = int(img.size[0] * (self.time - self.start_time) / self.period)
         return ImageChops.offset(img, shift, 0)
 
 
 class SlideFX(FXBase):
-    def __init__(self, size, *args):
-        self.start_t = None
-        self.size = size
+    def params(self, args):
+        period = 1
         if len(args) > 0 and isinstance(args[0], Number):
-            self.time = args[0]
+            period = args[0]
             args = args[1:]
-        else:
-            self.time = 1
+        width = max(self.size[0] // 10, 4)
         if len(args) > 0 and isinstance(args[0], Number):
-            self.width = args[0]
+            width = args[0]
             args = args[1:]
-        else:
-            self.width = max(size[0] // 10, 4)
+        fade = int(sqrt(max(width, 0) / 1.5))
         if len(args) > 0 and isinstance(args[0], Number):
-            self.fade = args[0]
+            fade = args[0]
             args = args[1:]
-        else:
-            self.fade = int(sqrt(max(self.width, 0) / 1.5))
-        self.sprite = gradient((self.width, size[1]), args if len(args) > 0 else ['white'])
-        pix = self.sprite.load()
-        for x in range(min(self.fade, (self.width + 1) // 2)):
-            v = (x + 1) / (self.fade + 1)
-            for y in range(size[1]):
+        sprite = gradient((width, self.size[1]), args if len(args) > 0 else ['white'])
+        pix = sprite.load()
+        for x in range(min(fade, (width + 1) // 2)):
+            v = (x + 1) / (fade + 1)
+            for y in range(self.size[1]):
                 p = pix[x, y]
                 pix[x, y] = p[0:3] + (int(p[3] * v),)
-                if x < self.width // 2:
+                if x < width // 2:
                     # Dont double-fade central pixel on odd widths
-                    p = pix[self.width - 1 - x, y]
-                    pix[self.width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
+                    p = pix[width - 1 - x, y]
+                    pix[width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
+        return dict(period=period, width=width, fade=fade, _sprite=sprite)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if time > self.start_t + abs(self.time):
+    def render(self):
+        if self.time > self.start_time + abs(self.period):
             return None
         img = Image.new('RGBA', self.size, (0, 0, 0, 0))
-        a = (time - self.start_t) / abs(self.time)
-        if self.time < 0:
+        a = (self.time - self.start_time) / abs(self.period)
+        if self.period < 0:
             a = 1 - a
         x = round(a * (self.size[0] + self.width) - self.width)
-        img.paste(self.sprite, (x, 0))
+        img.paste(self._sprite, (x, 0))
         return img
 
 
 class ChaseFX(FXBase):
-    def __init__(self, size, *args):
-        self.start_t = None
-        self.size = size
-
+    def params(self, args):
+        period = 1
         if len(args) > 0 and isinstance(args[0], Number):
-            self.time = args[0]
+            period = args[0]
             args = args[1:]
-        else:
-            self.time = 1
 
+        ratio = 0.05
         if len(args) > 0 and isinstance(args[0], Number):
-            self.ratio = args[0]
+            ratio = args[0]
             args = args[1:]
-        else:
-            self.ratio = 0.05
 
+        reps = -1
         if len(args) > 0 and isinstance(args[0], Number):
-            self.reps = args[0]
+            reps = args[0]
             args = args[1:]
-        else:
-            self.reps = -1
 
+        width = max(self.size[0] // 10, 4)
         if len(args) > 0 and isinstance(args[0], Number):
-            self.width = args[0]
+            width = args[0]
             args = args[1:]
-        else:
-            self.width = max(size[0] // 10, 4)
 
+        fade = int(sqrt(max(width, 0) / 1.5))
         if len(args) > 0 and isinstance(args[0], Number):
-            self.fade = args[0]
+            fade = args[0]
             args = args[1:]
-        else:
-            self.fade = int(sqrt(max(self.width, 0) / 1.5))
 
-        self.sprite = gradient((self.width, size[1]), args if len(args) > 0 else ['white'])
-        pix = self.sprite.load()
-        for x in range(min(self.fade, (self.width + 1) // 2)):
-            v = (x + 1) / (self.fade + 1)
-            for y in range(size[1]):
+        sprite = gradient((width, self.size[1]), args if len(args) > 0 else ['white'])
+        pix = sprite.load()
+        for x in range(min(fade, (width + 1) // 2)):
+            v = (x + 1) / (fade + 1)
+            for y in range(self.size[1]):
                 p = pix[x, y]
                 pix[x, y] = p[0:3] + (int(p[3] * v),)
-                if x < self.width // 2:
+                if x < width // 2:
                     # Dont double-fade central pixel on odd widths
-                    p = pix[self.width - 1 - x, y]
-                    pix[self.width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
+                    p = pix[width - 1 - x, y]
+                    pix[width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
+        return dict(period=period, ratio=ratio, reps=reps, width=width, fade=fade, _sprite=sprite)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if self.reps >= 0 and (time > self.start_t + abs(self.time) * self.reps):
+    def render(self):
+        if self.reps >= 0 and (self.time > self.start_time + abs(self.period) * self.reps):
             return None
         img = Image.new('RGBA', self.size, (0, 0, 0, 0))
-        t = time - self.start_t
-        if self.time < 0:
-            t -= self.time
-        t %= abs(2 * self.time)
+        t = self.time - self.start_time
+        if self.period < 0:
+            t -= self.period
+        t %= abs(2 * self.period)
         d = 1
-        if t > abs(self.time):
-            t -= abs(self.time)
+        if t > abs(self.period):
+            t -= abs(self.period)
             d = -1
-        a = min(1.0, t / abs(self.time * (1.0 - self.ratio)))
+        a = min(1.0, t / abs(self.period * (1.0 - self.ratio)))
         if d < 0:
             a = 1.0 - a
         x = round(a * (self.size[0] - self.width))
-        img.paste(self.sprite, (x, 0))
+        img.paste(self._sprite, (x, 0))
         return img
 
 
 class FlashFX(FXBase):
-    def __init__(self, size, *args):
-        super().__init__(size)
-        self.start_t = None
+    def params(self, args):
+        period = 0
         if len(args) > 0 and isinstance(args[0], Number):
-            self.time = args[0]
+            period = args[0]
             args = args[1:]
-        else:
-            self.time = 0
-        self.img = gradient(size, args)
-        self.trans = Image.new('RGBA', size, (0, 0, 0, 0))
+        img = gradient(self.size, args)
+        trans = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        return dict(period=period, _img=img, _trans=trans)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if time > self.start_t + self.time:
+    def render(self):
+        if self.time > self.start_time + self.period:
             return None
-        if self.time <= 0:
+        if self.period <= 0:
             return self.img
-        a = (time - self.start_t) / self.time
-        return Image.blend(self.img, self.trans, a)
+        a = (self.time - self.start_time) / self.period
+        return Image.blend(self._img, self._trans, a)
 
 
 class SparkleFX(FXBase):
-    def __init__(self, size, *args):
-        super().__init__(size)
-        self.start_t = None
-        self.prev_t = None
+    def params(self, args):
+        period = 0
         if len(args) > 0 and isinstance(args[0], Number):
-            self.time = args[0]
+            period = args[0]
             args = args[1:]
-        else:
-            self.time = 0
+        fade = 0
         if len(args) > 0 and isinstance(args[0], Number):
-            self.fade = args[0]
+            fade = args[0]
             args = args[1:]
-        else:
-            self.fade = 0
+        nspark = 10
         if len(args) > 0 and isinstance(args[0], Number):
-            self.nspark = args[0]
+            nspark = args[0]
             args = args[1:]
-        else:
-            self.nspark = 10
-        self.colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
-        self.img = Image.new('RGBA', size, (0, 0, 0, 0))
-        self.trans = Image.new('RGBA', size, (0, 0, 0, 0))
+        colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
+        img = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        trans = Image.new('RGBA', self.size, (0, 0, 0, 0))
+        return dict(period=period, fade=fade, nspark=nspark, colours=colours, _img=img, _trans=trans)
 
-    def getDisplay(self, time, previous):
-        if self.start_t is None:
-            self.start_t = time
-        if time > self.start_t + self.time + self.fade:
+    def render(self):
+        if self.time > self.start_time + self.period + self.fade:
             return None
-        pix = self.img.load()
-        if self.prev_t is not None:
-            nfade = 255 if self.fade <= 0 else round(255 * (time - self.prev_t) / self.fade)
+        pix = self._img.load()
+        if self.previous_time is not None:
+            nfade = 255 if self.fade <= 0 else round(255 * (self.time - self.previous_time) / self.fade)
             for y in range(self.size[1]):
                 for x in range(self.size[0]):
                     p = pix[x, y]
                     pix[x, y] = p[:3] + (max(0, p[3] - nfade),)
-        if time < self.start_t + self.time:
+        if self.time < self.start_time + self.period:
             for i in range(self.nspark):
                 pix[randrange(self.size[0]), randrange(self.size[1])] = choice(self.colours)
-        self.prev_t = time
-        return self.img
+        return self._img
 
 
 class FlameFX(FXBase):
     EXTRA = 10 # Extra pixels before start of strip where sparks are generated
     # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
-    def __init__(self, size, *args):
-        super().__init__(size)
-        self.flame = [0.0] * (size[0] + FlameFX.EXTRA)
-        self.sparking = args[0] if len(args) > 0 else 1 # Average number of sparks per frame
-        self.cooling = args[1] if len(args) > 1 else 1 # Cooling rate
-        self.kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2] # Drift + diffusion
-        self.palette = colour.scale('flame')
+    def params(self, args):
+        flame = [0.0] * (self.size[0] + FlameFX.EXTRA)
+        sparking = args[0] if len(args) > 0 else 1 # Average number of sparks per frame
+        cooling = args[1] if len(args) > 1 else 1 # Cooling rate
+        kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2] # Drift + diffusion
+        palette = colour.scale('flame')
+        return dict(_flame=flame, sparking=sparking, cooling=cooling, kernel=kernel, _palette=palette)
 
     def parse_kernel(self, s):
         return [int(c) for c in s]
@@ -329,10 +308,10 @@ class FlameFX(FXBase):
             p *= random()
         return k - 1
 
-    def getDisplay(self, time, previous):
-        f = self.flame
+    def render(self):
+        f = self._flame
         # Cool down every cell a little
-        for i in range(len(self.flame)):
+        for i in range(len(f)):
             f[i] -= random() * 3 * self.cooling / len(f)
             if f[i] < 0.0:
                 # Clamp pixel heat to minimum of 0
@@ -359,7 +338,7 @@ class FlameFX(FXBase):
         img = Image.new('RGBA', self.size)
         pix = img.load()
         for i in range(self.size[0]):
-            p = self.palette(f[i + FlameFX.EXTRA])
+            p = self._palette(f[i + FlameFX.EXTRA])
             for j in range(self.size[1]):
                 pix[i, j] = p
         return img
