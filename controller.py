@@ -1,6 +1,6 @@
 from asyncio import get_event_loop
 from PIL import Image
-from fx import SolidFX, FadeFX, SpinFX, ChaseFX, SlideFX, FlashFX, SparkleFX, FlameFX
+from fx import SolidFX, FadeFX, SpinFX, RotateFX, ChaseFX, SlideFX, FlashFX, SparkleFX, FlameFX
 
 
 class Controller:
@@ -34,24 +34,27 @@ class Controller:
         elif addr == '/spin':
             prev = self.layers[30].image if 30 in self.layers else None
             self.layers[30] = SpinFX(self.size, prev, args)
-        elif addr == '/chase':
+        elif addr == '/rotate':
             prev = self.layers[40].image if 40 in self.layers else None
-            self.layers[40] = ChaseFX(self.size, prev, args)
-        elif addr == '/slide':
+            self.layers[40] = RotateFX(self.size, prev, args)
+        elif addr == '/chase':
             prev = self.layers[50].image if 50 in self.layers else None
-            self.layers[50] = SlideFX(self.size, prev, args)
-        elif addr == '/flash':
+            self.layers[50] = ChaseFX(self.size, prev, args)
+        elif addr == '/slide':
             prev = self.layers[60].image if 60 in self.layers else None
-            self.layers[60] = FlashFX(self.size, prev, args)
-        elif addr == '/sparkle':
+            self.layers[60] = SlideFX(self.size, prev, args)
+        elif addr == '/flash':
             prev = self.layers[70].image if 70 in self.layers else None
-            self.layers[70] = SparkleFX(self.size, prev, args)
-        elif addr == '/flame':
+            self.layers[70] = FlashFX(self.size, prev, args)
+        elif addr == '/sparkle':
             prev = self.layers[80].image if 80 in self.layers else None
+            self.layers[80] = SparkleFX(self.size, prev, args)
+        elif addr == '/flame':
+            prev = self.layers[90].image if 90 in self.layers else None
             self.layers[80] = [FlameFX(self.size, *args), prev]
         elif addr == '/mod':
-            prev = self.layers[90].image if 90 in self.layers else None
-            self.layers[90] = [FadeFX(self.size, *args), prev]
+            prev = self.layers[100].image if 100 in self.layers else None
+            self.layers[100] = [FadeFX(self.size, *args), prev]
         elif addr == '/kill':
             self.layers = {}
         else:

@@ -18,6 +18,7 @@ class FXBase(object):
 
     def __getattr__(self, nm):
         if nm == '_params':
+            # Avoid infinite recursion if a parameter is accessed during initialisation.
             raise Exception("Can't use params during initialisation")
         return self._params[nm]
 
@@ -123,6 +124,18 @@ class SpinFX(FXBase):
         img = Image.blend(imgs[i-1][1], imgs[i][1], a)
         shift = int(img.size[0] * (self.time - self.start_time) / self.period)
         return ImageChops.offset(img, shift, 0)
+
+
+class RotateFX(FXBase):
+    def params(self, args):
+        return dict(period=1 if len(args) < 1 else args[0],
+                    reps=-1 if len(args) < 2 else args[1])
+
+    def render(self):
+        if self.reps >= 0 and self.time > self.start_time + self.period * self.reps:
+            return None
+        shift = int(self.size[0] * (self.time - self.start_time) / self.period)
+        return ImageChops.offset(self.background, shift, 0)
 
 
 class SlideFX(FXBase):
