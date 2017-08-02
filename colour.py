@@ -1,6 +1,7 @@
 from bisect import bisect
 from PIL import ImageColor
 
+
 def getrgba(s):
     """Get an RGBA colour tuple from a string"""
     if s.lower() == 'transparent': # add a name for fully transparent
@@ -33,6 +34,14 @@ class ColourScale:
 
     def __call__(self, x):
         return tuple(_interpolate(col, x) for col in self.cols)
+
+    def is_flat(self):
+        for c in self.cols:
+            v = c[0][1]
+            for a in c:
+                if a[1] != v or a[2] != v:
+                    return False
+        return True
 
 def scale(*args):
     """Get a colour scale, either by name or by building a scale from a list of points

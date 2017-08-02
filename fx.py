@@ -29,8 +29,8 @@ class FXBase(object):
         if ring:
             colours.append(colours[0])
         scale = colour.scale(*colours)
-        #if scale.single_colour():
-        #    return Image.new('RGBA', size, scale(0))
+        if scale.is_flat():
+            return Image.new('RGBA', size, scale(0))
         img = Image.new('RGBA', size)
         pix = img.load()
         for x in range(size[0]):
