@@ -4,12 +4,13 @@ from PIL import ImageColor
 
 def getrgba(s):
     """Get an RGBA colour tuple from a string"""
-    if s.lower() == 'transparent': # add a name for fully transparent
+    if s.lower() == 'transparent':  # add a name for fully transparent
         s = '#0000'
     c = ImageColor.getrgb(s)
     if len(c) == 3:
         return c + (255,)
     return c
+
 
 def _interpolate(vals, x):
     # handle out of range values
@@ -43,9 +44,10 @@ class ColourScale:
                     return False
         return True
 
+
 def scale(*args):
     """Get a colour scale, either by name or by building a scale from a list of points
-    The magma, plasma, inferno & viridis scales are approximations of the equivalents from matplotlib"""
+    The magma, plasma, inferno & viridis scales are approximations of their matplotlib namesakes"""
     if len(args) == 1:
         if isinstance(args[0], ColourScale):
             return args[0]
@@ -54,6 +56,7 @@ def scale(*args):
         except KeyError:
             pass
     return _scale(*args)
+
 
 def _scale(*args):
     """Build a colour scale from a list of colour points on the scale"""
@@ -103,6 +106,7 @@ def _scale(*args):
                 j += 1
     return ColourScale(cols)
 
+
 def show(*args):
     """Show a colour scale on screen"""
     from PIL import Image
@@ -116,6 +120,7 @@ def show(*args):
         for y in range(h):
             pix[x, y] = c
     img.show()
+
 
 scales = dict(flame=_scale('transparent', [0.4, 'red'], [0.7, 'yellow'], 'white'),
               magma=ColourScale([[[0, 0, 0],

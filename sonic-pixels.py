@@ -58,6 +58,7 @@ if __name__ == "__main__":
 
     controller = Controller(args.width, args.height, args.period, leds, args.debug)
     loop = asyncio.get_event_loop()
+
     def cleanup():
         loop.stop()
         if args.clear:

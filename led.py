@@ -1,3 +1,4 @@
+import colour
 from PIL import ImageColor
 from fakepixel import Fake_NeoPixel
 try:

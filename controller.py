@@ -1,6 +1,6 @@
 from asyncio import get_event_loop
 from PIL import Image
-from fx import *
+from fx import SolidFX, FadeFX, SpinFX, ChaseFX, SlideFX, FlashFX, SparkleFX, FlameFX
 
 
 class Controller:

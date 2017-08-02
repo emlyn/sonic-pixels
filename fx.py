@@ -270,7 +270,8 @@ class SparkleFX(FXBase):
             return None
         pix = self.img.load()
         if self.previous_time is not None:
-            nfade = 255 if self.fade <= 0 else round(255 * (self.time - self.previous_time) / self.fade)
+            nfade = 255 if self.fade <= 0 else round((self.time - self.previous_time)
+                                                     * 255 / self.fade)
             for y in range(self.size[1]):
                 for x in range(self.size[0]):
                     p = pix[x, y]
@@ -282,12 +283,13 @@ class SparkleFX(FXBase):
 
 
 class FlameFX(FXBase):
-    EXTRA = 10 # Extra pixels before start of strip where sparks are generated
     # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
+    EXTRA = 10  # Extra pixels before start of strip where sparks are generated
+
     def params(self, args):
-        sparking = args[0] if len(args) > 0 else 1 # Average number of sparks per frame
-        cooling = args[1] if len(args) > 1 else 1 # Cooling rate
-        kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2] # Drift + diffusion
+        sparking = args[0] if len(args) > 0 else 1  # Average number of sparks per frame
+        cooling = args[1] if len(args) > 1 else 1  # Cooling rate
+        kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2]  # Drift + diffusion
         self.flame = [0.0] * (self.size[0] + FlameFX.EXTRA)
         self.palette = colour.scale('flame')
         return dict(sparking=sparking, cooling=cooling, kernel=kernel)
