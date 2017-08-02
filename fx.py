@@ -25,8 +25,8 @@ class FXBase(object):
         if size is None:
             size = self.size
         if len(colours) == 0:
-            colours = ['black']
-        if ring:
+            colours = ['transparent']
+        if ring and len(colours) > 1:
             colours.append(colours[0])
         scale = colour.scale(*colours)
         if scale.is_flat():
@@ -71,8 +71,6 @@ class FadeFX(FXBase):
         tlast = 0
         for v in vals:
             if isinstance(v, Number):
-                if len(cols) == 0:
-                    cols = ['transparent']
                 img = self.new_image(*cols)
                 imgs.append([tlast, img])
                 tlast += v
@@ -104,8 +102,6 @@ class SpinFX(FXBase):
         tlast = 0
         for v in args:
             if isinstance(v, Number):
-                if len(cols) == 0:
-                    cols = ['transparent']
                 img = self.new_image(*cols, True)
                 imgs.append([tlast, img])
                 tlast += v
@@ -161,7 +157,7 @@ class SlideFX(FXBase):
     def render(self):
         if self.time > self.start_time + abs(self.period):
             return None
-        img = self.new_image('transparent')
+        img = self.new_image()
         a = (self.time - self.start_time) / abs(self.period)
         if self.period < 0:
             a = 1 - a
@@ -215,7 +211,7 @@ class ChaseFX(FXBase):
     def render(self):
         if self.reps >= 0 and (self.time > self.start_time + abs(self.period) * self.reps):
             return None
-        img = self.new_image('transparent')
+        img = self.new_image()
         t = self.time - self.start_time
         if self.period < 0:
             t -= self.period
@@ -239,7 +235,7 @@ class FlashFX(FXBase):
             period = args[0]
             args = args[1:]
         self.img = self.new_image(*args)
-        self.trans = self.new_image('transparent')
+        self.trans = self.new_image()
         return dict(period=period)
 
     def render(self):
@@ -266,7 +262,7 @@ class SparkleFX(FXBase):
             nspark = args[0]
             args = args[1:]
         colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
-        self.img = self.new_image('transparent')
+        self.img = self.new_image()
         return dict(period=period, fade=fade, nspark=nspark, colours=colours)
 
     def render(self):
@@ -336,7 +332,7 @@ class FlameFX(FXBase):
                 # Clamp pixel heat to maximum of 1
                 f[pos] = 1.0
         # Convert heat to LED colors
-        img = self.new_image('transparent')
+        img = self.new_image()
         pix = img.load()
         for i in range(self.size[0]):
             p = self.palette(f[i + FlameFX.EXTRA])
