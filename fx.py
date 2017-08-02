@@ -14,7 +14,7 @@ class FXBase(object):
         self.previous_time = None
         self.image = prev
         self.background = None
-        self._params = self.params(args)
+        self._params = self.params(args) or {}
 
     def __getattr__(self, nm):
         if nm == '_params':
@@ -41,7 +41,7 @@ class FXBase(object):
         return img
 
     def params(self, args):
-        return {}
+        pass
 
     def render(self):
         raise NotImplementedError("FX implementations must implement render")
@@ -58,10 +58,10 @@ class FXBase(object):
 
 class SolidFX(FXBase):
     def params(self, colours):
-        return dict(_img=self.new_image(*colours))
+        self.img = self.new_image(*colours)
 
     def render(self):
-        return self._img
+        return self.img
 
 
 class FadeFX(FXBase):
@@ -81,10 +81,10 @@ class FadeFX(FXBase):
             else:
                 cols.append(v)
         imgs.append([tlast, self.new_image(*cols)])
-        return dict(_imgs=imgs)
+        self.imgs = imgs
 
     def render(self):
-        imgs = self._imgs
+        imgs = self.imgs
         if imgs[0][1] is None:
             imgs[0][1] = self.background
         if self.time <= self.start_time:
@@ -93,17 +93,19 @@ class FadeFX(FXBase):
             return imgs[-1][1]
         i = bisect_right(imgs, [self.time - self.start_time, None])
         a = (self.time - self.start_time - imgs[i-1][0]) / (imgs[i][0] - imgs[i-1][0])
-        print('dbg i={}, a={}, imgs={}'.format(i, a, imgs))
         return Image.blend(imgs[i-1][1], imgs[i][1], a)
 
 
 class SpinFX(FXBase):
     def params(self, args):
         imgs = []
-        period = args[0]
+        period = 1
+        if len(args) > 0 and isinstance(args[0], Number):
+            period = args[0]
+            args = args[1:]
         cols = []
         tlast = 0
-        for v in args[1:]:
+        for v in args:
             if isinstance(v, Number):
                 if len(cols) == 0 and len(self.imgs) == 0:
                     img = None
@@ -115,10 +117,11 @@ class SpinFX(FXBase):
             else:
                 cols.append(v)
         imgs.append([tlast, self.new_image(*cols, True)])
-        return dict(period=period, _imgs=imgs)
+        self.imgs = imgs
+        return dict(period=period)
 
     def render(self):
-        imgs = self._imgs
+        imgs = self.imgs
         if imgs[0][1] is None:
             imgs[0][1] = self.background
         if self.time <= self.start_time:
@@ -148,8 +151,8 @@ class SlideFX(FXBase):
             args = args[1:]
         sprite_cols = args if len(args) > 0 else ['white']
         sprite_size = (width, self.size[1])
-        sprite = self.new_image(*sprite_cols, size=sprite_size)
-        pix = sprite.load()
+        self.sprite = self.new_image(*sprite_cols, size=sprite_size)
+        pix = self.sprite.load()
         for x in range(min(fade, (width + 1) // 2)):
             v = (x + 1) / (fade + 1)
             for y in range(self.size[1]):
@@ -159,7 +162,7 @@ class SlideFX(FXBase):
                     # Dont double-fade central pixel on odd widths
                     p = pix[width - 1 - x, y]
                     pix[width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
-        return dict(period=period, width=width, fade=fade, _sprite=sprite)
+        return dict(period=period, width=width, fade=fade)
 
     def render(self):
         if self.time > self.start_time + abs(self.period):
@@ -169,7 +172,7 @@ class SlideFX(FXBase):
         if self.period < 0:
             a = 1 - a
         x = round(a * (self.size[0] + self.width) - self.width)
-        img.paste(self._sprite, (x, 0))
+        img.paste(self.sprite, (x, 0))
         return img
 
 
@@ -202,8 +205,8 @@ class ChaseFX(FXBase):
 
         sprite_cols = args if len(args) > 0 else ['white']
         sprite_size = (width, self.size[1])
-        sprite = self.new_image(*sprite_cols, size=sprite_size)
-        pix = sprite.load()
+        self.sprite = self.new_image(*sprite_cols, size=sprite_size)
+        pix = self.sprite.load()
         for x in range(min(fade, (width + 1) // 2)):
             v = (x + 1) / (fade + 1)
             for y in range(self.size[1]):
@@ -213,7 +216,7 @@ class ChaseFX(FXBase):
                     # Dont double-fade central pixel on odd widths
                     p = pix[width - 1 - x, y]
                     pix[width - 1 - x, y] = p[0:3] + (int(p[3] * v),)
-        return dict(period=period, ratio=ratio, reps=reps, width=width, fade=fade, _sprite=sprite)
+        return dict(period=period, ratio=ratio, reps=reps, width=width, fade=fade)
 
     def render(self):
         if self.reps >= 0 and (self.time > self.start_time + abs(self.period) * self.reps):
@@ -231,7 +234,7 @@ class ChaseFX(FXBase):
         if d < 0:
             a = 1.0 - a
         x = round(a * (self.size[0] - self.width))
-        img.paste(self._sprite, (x, 0))
+        img.paste(self.sprite, (x, 0))
         return img
 
 
@@ -241,9 +244,9 @@ class FlashFX(FXBase):
         if len(args) > 0 and isinstance(args[0], Number):
             period = args[0]
             args = args[1:]
-        img = self.new_image(*args)
-        trans = self.new_image('transparent')
-        return dict(period=period, _img=img, _trans=trans)
+        self.img = self.new_image(*args)
+        self.trans = self.new_image('transparent')
+        return dict(period=period)
 
     def render(self):
         if self.time > self.start_time + self.period:
@@ -251,7 +254,7 @@ class FlashFX(FXBase):
         if self.period <= 0:
             return self.img
         a = (self.time - self.start_time) / self.period
-        return Image.blend(self._img, self._trans, a)
+        return Image.blend(self.img, self.trans, a)
 
 
 class SparkleFX(FXBase):
@@ -269,13 +272,13 @@ class SparkleFX(FXBase):
             nspark = args[0]
             args = args[1:]
         colours = [ImageColor.getrgb(c) for c in (args if len(args) > 0 else ['white'])]
-        img = self.new_image('transparent')
-        return dict(period=period, fade=fade, nspark=nspark, colours=colours, _img=img)
+        self.img = self.new_image('transparent')
+        return dict(period=period, fade=fade, nspark=nspark, colours=colours)
 
     def render(self):
         if self.time > self.start_time + self.period + self.fade:
             return None
-        pix = self._img.load()
+        pix = self.img.load()
         if self.previous_time is not None:
             nfade = 255 if self.fade <= 0 else round(255 * (self.time - self.previous_time) / self.fade)
             for y in range(self.size[1]):
@@ -285,19 +288,19 @@ class SparkleFX(FXBase):
         if self.time < self.start_time + self.period:
             for i in range(self.nspark):
                 pix[randrange(self.size[0]), randrange(self.size[1])] = choice(self.colours)
-        return self._img
+        return self.img
 
 
 class FlameFX(FXBase):
     EXTRA = 10 # Extra pixels before start of strip where sparks are generated
     # Adapted from https://www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/#fire
     def params(self, args):
-        flame = [0.0] * (self.size[0] + FlameFX.EXTRA)
         sparking = args[0] if len(args) > 0 else 1 # Average number of sparks per frame
         cooling = args[1] if len(args) > 1 else 1 # Cooling rate
         kernel = self.parse_kernel(args[2]) if len(args) > 2 else [0, 1, 2] # Drift + diffusion
-        palette = colour.scale('flame')
-        return dict(_flame=flame, sparking=sparking, cooling=cooling, kernel=kernel, _palette=palette)
+        self.flame = [0.0] * (self.size[0] + FlameFX.EXTRA)
+        self.palette = colour.scale('flame')
+        return dict(sparking=sparking, cooling=cooling, kernel=kernel)
 
     def parse_kernel(self, s):
         return [int(c) for c in s]
@@ -313,7 +316,7 @@ class FlameFX(FXBase):
         return k - 1
 
     def render(self):
-        f = self._flame
+        f = self.flame
         # Cool down every cell a little
         for i in range(len(f)):
             f[i] -= random() * 3 * self.cooling / len(f)
@@ -342,7 +345,7 @@ class FlameFX(FXBase):
         img = self.new_image('transparent')
         pix = img.load()
         for i in range(self.size[0]):
-            p = self._palette(f[i + FlameFX.EXTRA])
+            p = self.palette(f[i + FlameFX.EXTRA])
             for j in range(self.size[1]):
                 pix[i, j] = p
         return img
