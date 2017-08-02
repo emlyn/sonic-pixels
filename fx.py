@@ -71,10 +71,9 @@ class FadeFX(FXBase):
         tlast = 0
         for v in vals:
             if isinstance(v, Number):
-                if len(cols) == 0 and len(imgs) == 0:
-                    img = None
-                else:
-                    img = self.new_image(*cols)
+                if len(cols) == 0:
+                    cols = ['transparent']
+                img = self.new_image(*cols)
                 imgs.append([tlast, img])
                 tlast += v
                 cols = []
@@ -85,8 +84,6 @@ class FadeFX(FXBase):
 
     def render(self):
         imgs = self.imgs
-        if imgs[0][1] is None:
-            imgs[0][1] = self.background
         if self.time <= self.start_time:
             return imgs[0][1]
         elif self.time >= self.start_time + imgs[-1][0]:
@@ -107,10 +104,9 @@ class SpinFX(FXBase):
         tlast = 0
         for v in args:
             if isinstance(v, Number):
-                if len(cols) == 0 and len(self.imgs) == 0:
-                    img = None
-                else:
-                    img = self.new_image(*cols, True)
+                if len(cols) == 0:
+                    cols = ['transparent']
+                img = self.new_image(*cols, True)
                 imgs.append([tlast, img])
                 tlast += v
                 cols = []
@@ -122,8 +118,6 @@ class SpinFX(FXBase):
 
     def render(self):
         imgs = self.imgs
-        if imgs[0][1] is None:
-            imgs[0][1] = self.background
         if self.time <= self.start_time:
             return imgs[0][1]
         elif self.time >= self.start_time + imgs[-1][0]:
