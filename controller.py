@@ -1,9 +1,13 @@
 from asyncio import get_event_loop
+from fx import FXBase
 from PIL import Image
-from fx import SolidFX, FadeFX, SpinFX, RotateFX, ChaseFX, SlideFX, FlashFX, SparkleFX, FlameFX
+
+import re
 
 
 class Controller:
+    FX_SUFFIX = re.compile('fx$')
+
     def __init__(self, width, height, period, leds, debug):
         self.period = period
         self.leds = leds
@@ -13,6 +17,12 @@ class Controller:
         self.loop = get_event_loop()
         self.handle = self.loop.call_soon(self._loop, self.loop)
         self.last = None
+        self.fx = {self._fx_addr(fx): fx
+                   for fx in FXBase.__subclasses__()}
+
+    def _fx_addr(self, fx):
+        # FX name in lower case with 'fx' suffix removed, and '/' in front
+        return '/' + re.sub(Controller.FX_SUFFIX, '', fx.__name__.lower(), 1)
 
     def handler(self, addr, *args):
         if self.debug:
@@ -23,40 +33,18 @@ class Controller:
         elif addr == '/gamma':
             self.last = None
             self.leds.gamma(*args)
-        elif addr == '/clear':
+        elif addr in ('/clear', '/kill'):
             self.layers = {}
-        elif addr == '/bg':
-            prev = self.layers[10].image if 10 in self.layers else None
-            self.layers[10] = SolidFX(self.size, prev, args)
-        elif addr == '/fade':
-            prev = self.layers[20].image if 20 in self.layers else None
-            self.layers[20] = FadeFX(self.size, prev, args)
-        elif addr == '/spin':
-            prev = self.layers[30].image if 30 in self.layers else None
-            self.layers[30] = SpinFX(self.size, prev, args)
-        elif addr == '/rotate':
-            prev = self.layers[40].image if 40 in self.layers else None
-            self.layers[40] = RotateFX(self.size, prev, args)
-        elif addr == '/chase':
-            prev = self.layers[50].image if 50 in self.layers else None
-            self.layers[50] = ChaseFX(self.size, prev, args)
-        elif addr == '/slide':
-            prev = self.layers[60].image if 60 in self.layers else None
-            self.layers[60] = SlideFX(self.size, prev, args)
-        elif addr == '/flash':
-            prev = self.layers[70].image if 70 in self.layers else None
-            self.layers[70] = FlashFX(self.size, prev, args)
-        elif addr == '/sparkle':
-            prev = self.layers[80].image if 80 in self.layers else None
-            self.layers[80] = SparkleFX(self.size, prev, args)
-        elif addr == '/flame':
-            prev = self.layers[90].image if 90 in self.layers else None
-            self.layers[80] = [FlameFX(self.size, *args), prev]
         elif addr == '/mod':
             prev = self.layers[100].image if 100 in self.layers else None
             self.layers[100] = [FadeFX(self.size, *args), prev]
-        elif addr == '/kill':
-            self.layers = {}
+        elif addr in self.fx:
+            fxclass = self.fx[addr]
+            fx = fxclass(self.size, args)
+            layer = fx.default_layer()
+            if layer in self.layers:
+                fx.image = self.layers[layer].image
+            self.layers[layer] = fx
         else:
             print("Unrecognised CMD:", addr, args)
         self.handle.cancel()
