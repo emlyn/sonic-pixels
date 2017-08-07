@@ -1,12 +1,13 @@
 import colour
 from PIL import Image, ImageChops, ImageColor
+from abc import ABCMeta, abstractmethod
 from bisect import bisect_right
 from math import exp, sqrt
 from numbers import Number
 from random import choice, random, randrange
 
 
-class FXBase(object):
+class FXBase(object, metaclass=ABCMeta):
     def __init__(self, size, prev, args):
         self.size = size
         self.time = None
@@ -44,8 +45,9 @@ class FXBase(object):
     def params(self, args):
         pass
 
+    @abstractmethod
     def render(self):
-        raise NotImplementedError("FX implementations must implement render")
+        pass
 
     def next_image(self, time, background):
         if self.start_time is None:
